@@ -199,37 +199,40 @@ function aNumero(t) { var n = parseFloat(String(t).trim().replace(',', '.')); re
 
 // Detector de salto: caída libre (|a| ~ 0) precedida por un impulso y seguida por un choque de aterrizaje.
 function crearDetectorSalto(cfg) {
-    cfg = Object.assign({ bajo: 4.5, alto: 15, minVuelo: 0.20, maxVuelo: 1.2, ventanaImpulso: 0.8, ventanaAterrizaje: 0.3 }, cfg || {});
-    var prevT = null, prevM = null, ultimoAlto = -1e9;
-    var enVuelo = false, t0 = 0, pend = null;
+    // Despegue: último instante con fuerza claramente positiva (≥ medio) antes de caer bajo «bajo».
+    // Aterrizaje: último cruce hacia arriba de «bajo» antes del golpe (≥ alto). Los rebotes del celular
+    // durante el vuelo (valores de 5-8 m/s²) ya no cortan el vuelo.
+    cfg = Object.assign({ bajo: 4.5, medio: 12, alto: 15, minVuelo: 0.20, maxVuelo: 1.2, ventanaImpulso: 0.8 }, cfg || {});
+    var prevT = null, prevM = null, ultimoAlto = -1e9, ultimoMedio = -1e9;
+    var enVuelo = false, t0 = 0, tUp = null;
     function cruce(ta, ma, tb, mb, nivel) { return ta + (nivel - ma) * (tb - ta) / (mb - ma); }
     return {
         cfg: cfg,
         procesar: function (t, m) {
             var res = null;
             if (prevT !== null) {
-                if (!enVuelo && !pend && prevM >= cfg.bajo && m < cfg.bajo) {
-                    var tc = cruce(prevT, prevM, t, m, cfg.bajo);
-                    if (tc - ultimoAlto <= cfg.ventanaImpulso) { enVuelo = true; t0 = tc; }
-                } else if (enVuelo) {
-                    if (t - t0 > cfg.maxVuelo) enVuelo = false;
-                    else if (prevM < cfg.bajo && m >= cfg.bajo) {
-                        var t1 = cruce(prevT, prevM, t, m, cfg.bajo);
-                        enVuelo = false;
-                        var dur = t1 - t0;
-                        if (dur >= cfg.minVuelo && dur <= cfg.maxVuelo) pend = { t0: t0, t1: t1, dur: dur, limite: t1 + cfg.ventanaAterrizaje };
+                if (!enVuelo) {
+                    if (prevM >= cfg.bajo && m < cfg.bajo) {
+                        var tc = cruce(prevT, prevM, t, m, cfg.bajo);
+                        if (tc - ultimoAlto <= cfg.ventanaImpulso) { enVuelo = true; t0 = (tc - ultimoMedio < 0.6) ? ultimoMedio : tc; tUp = null; }
                     }
-                }
-                if (pend) {
-                    if (m >= cfg.alto) { res = { vuelo: pend.dur, altura: G * pend.dur * pend.dur / 8, t0: pend.t0, t1: pend.t1 }; pend = null; }
-                    else if (t > pend.limite) pend = null;
+                } else if (t - t0 > cfg.maxVuelo) enVuelo = false;
+                else {
+                    if (prevM < cfg.bajo && m >= cfg.bajo) tUp = cruce(prevT, prevM, t, m, cfg.bajo);
+                    else if (prevM >= cfg.bajo && m < cfg.bajo && t - ultimoMedio < 0.6) t0 = ultimoMedio;   // la fuerza volvió a subir: el despegue es el de la última caída
+                    if (m >= cfg.alto) {
+                        enVuelo = false;
+                        var t1 = (tUp !== null && t - tUp <= 0.25) ? tUp : t, dur = t1 - t0;
+                        if (dur >= cfg.minVuelo && dur <= cfg.maxVuelo) res = { vuelo: dur, altura: G * dur * dur / 8, t0: t0, t1: t1 };
+                    }
                 }
             }
             if (m >= cfg.alto) ultimoAlto = t;
+            if (m >= cfg.medio) ultimoMedio = t;
             prevT = t; prevM = m;
             return res;
         },
-        reiniciar: function () { prevT = prevM = null; enVuelo = false; pend = null; ultimoAlto = -1e9; }
+        reiniciar: function () { prevT = prevM = null; enVuelo = false; ultimoAlto = ultimoMedio = -1e9; tUp = null; }
     };
 }
 
