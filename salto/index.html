@@ -799,11 +799,18 @@ function dibujarCurva(cv, an) {
     for (var s0 = Math.ceil((xa - t.inicio) / .25) * .25; t.inicio + s0 <= xb; s0 += .25) c.fillText(s0.toFixed(2) + (Math.abs(s0 - Math.round(s0)) < 1e-6 ? ' s' : ''), X(t.inicio + s0), h - 10);
 }
 
+// masa que empuja contra el suelo: peso del atleta + carga extra (el celular mide la aceleración de todo el sistema)
+function masaSistema(rec) {
+    var a = A(), peso = a ? aNumero(a.peso) : NaN;
+    return isFinite(peso) && peso > 0 ? peso + (rec && rec.extraKg > 0 ? rec.extraKg : 0) : NaN;
+}
 function mostrarCurva(divId, rec) {
     var div = $(divId), an = analizarRec(rec);
     if (an.error) { div.innerHTML = '<div class="msg av">' + esc(an.error) + '</div>'; return; }
     var mm = an.m, a = A(), peso = a ? aNumero(a.peso) : NaN;
-    var N = isFinite(peso) && peso > 0 ? ' (' + fmt(mm.picoBW * peso * G, 0) + ' N)' : '';
+    var masa = masaSistema(rec), tieneMasa = isFinite(masa);
+    var N = tieneMasa ? ' (' + fmt(mm.picoBW * masa * G, 0) + ' N)' : '';
+    var extraN = tieneMasa ? '<div>Fuerza pico<b>' + fmt(mm.picoBW * masa * G, 0) + ' N</b></div><div>Fuerza relativa<b>' + fmt(mm.picoBW * G, 1) + ' N/kg</b></div><div>RFD máx.<b>' + fmt(mm.rfdBWs * masa * G, 0) + ' N/s</b></div><div>Potencia pico<b>' + fmt(mm.potenciaPico * masa, 0) + ' W</b></div><div>Impulso neto<b>' + fmt(mm.impulsoBWs * masa * G, 0) + ' N·s</b></div><div>Masa usada<b>' + fmt(masa, 1) + ' kg</b></div>' : '';
     div.innerHTML = '<div class="sub" style="margin-bottom:4px">' + esc(rec.tipo || '') + ' · ' + fmt(rec.altura * 100, 1) + ' cm · ' + hora(rec.fecha) + '</div><canvas id="cv-' + divId + '" height="270"></canvas>' +
         '<div class="leyenda"><span><i style="background:' + COLOR.desc + '"></i>Descarga</span><span><i style="background:' + COLOR.fren + '"></i>Frenado</span><span><i style="background:' + COLOR.dec + '"></i>Deceleración</span>' +
         '<span><i style="background:' + COLOR.p1 + '"></i>Concéntrica P1</span>' + (an.t.p1p2 !== null ? '<span><i style="background:' + COLOR.p2 + '"></i>P2</span>' : '') + '<span><i style="background:' + COLOR.aterr + '"></i>Aterrizaje</span></div>' +
@@ -813,7 +820,7 @@ function mostrarCurva(divId, rec) {
         '<div>Descarga<b>' + fmt(mm.descargaS * 1000, 0) + ' ms</b></div><div>Frenado<b>' + fmt(mm.frenadoS * 1000, 0) + ' ms</b></div>' +
         '<div>Concéntrica<b>' + fmt(mm.concentricaS * 1000, 0) + ' ms</b></div><div>Profundidad contramov.<b>' + (mm.profundidadM > 0.6 ? '— (no confiable)' : fmt(mm.profundidadM * 100, 0) + ' cm') + '</b></div>' +
         '<div>Altura (tiempo de vuelo)<b>' + fmt(mm.hVuelo * 100, 1) + ' cm</b></div><div>Altura (impulso)<b>' + fmt(mm.hImp * 100, 1) + ' cm</b></div>' +
-        '<div>Potencia pico<b>' + fmt(mm.potenciaPico, 1) + ' W/kg</b></div><div>Pico de aterrizaje<b>' + fmt(mm.picoAterrizajeBW, 1) + ' BW</b></div></div>' +
+        '<div>Potencia pico<b>' + fmt(mm.potenciaPico, 1) + ' W/kg</b></div><div>Pico de aterrizaje<b>' + fmt(mm.picoAterrizajeBW, 1) + ' BW</b></div>' + extraN + '</div>' + (tieneMasa ? '' : '<div class="sub" style="margin-top:6px">Escribe tu peso en la pestaña Atleta para ver también la fuerza en newtons, la potencia en vatios y el impulso.</div>') +
         '<div class="sub" style="margin-top:6px">Aproximación con el acelerómetro del celular (60 a 200 lecturas/s según el teléfono y la app); una plataforma de fuerza mide a 1000/s. La altura por impulso debería parecerse a la del tiempo de vuelo: si difieren mucho, la señal no es confiable.</div>';
     dibujarCurva($('cv-' + divId), an);
 }
@@ -890,12 +897,13 @@ function descargar(nombre, filas, msgId) {
     $(msgId).innerHTML = '<div class="msg ok">Archivo generado: ' + esc(nombre) + ' (separador «;», se abre directo en Excel).</div>';
 }
 function nombreArchivo(pref) { return pref + '_' + DB.actual.replace(/[^\w-]+/g, '_'); }
-var COLS = ['sesion', 'fecha_hora', 'deportista', 'tipo', 'carga_extra_kg', 'valido', 'origen', 'tiempo_vuelo_s', 'altura_cm', 'v_despegue_m_s', 'fuerza_pico_BW', 'RFD_max_BW_s', 'descarga_ms', 'frenado_ms', 'concentrica_ms', 'profundidad_cm', 'altura_impulso_cm', 'potencia_pico_W_kg', 'pico_aterrizaje_BW', 'pico_impulso_m_s2', 'pico_aterr_m_s2', 'lecturas_por_s'];
+var COLS = ['sesion', 'fecha_hora', 'deportista', 'tipo', 'carga_extra_kg', 'valido', 'origen', 'tiempo_vuelo_s', 'altura_cm', 'v_despegue_m_s', 'fuerza_pico_BW', 'RFD_max_BW_s', 'descarga_ms', 'frenado_ms', 'concentrica_ms', 'profundidad_cm', 'altura_impulso_cm', 'potencia_pico_W_kg', 'pico_aterrizaje_BW', 'pico_impulso_m_s2', 'pico_aterr_m_s2', 'lecturas_por_s', 'masa_kg', 'fuerza_pico_N', 'RFD_max_N_s', 'potencia_pico_W', 'impulso_neto_N_s'];
 function filaSalto(x, sesion) {
     var m = x.met || {}, f = function (v, d) { return v === undefined || v === null || !isFinite(v) ? '' : v.toFixed(d); };
     return [sesion, x.fecha, DB.actual, x.tipo || '', f(x.extraKg, 1), x.valido === false ? 'no' : 'si', x.fuente || 'sensor', f(x.vuelo, 4), f(x.altura * 100, 2), f(x.vDespegue, 3),
         f(m.picoBW, 3), f(m.rfdBWs, 1), f(m.descargaS * 1000, 0), f(m.frenadoS * 1000, 0), f(m.concentricaS * 1000, 0), f(m.profundidadM * 100, 1), f(m.hImp * 100, 2), f(m.potenciaPico, 1), f(m.picoAterrizajeBW, 2),
-        f(x.picoImpulso, 2), f(x.picoAterrizaje, 2), x.hz || ''];
+        f(x.picoImpulso, 2), f(x.picoAterrizaje, 2), x.hz || '',
+        f(masaSistema(x), 1), f(m.picoBW * masaSistema(x) * G, 0), f(m.rfdBWs * masaSistema(x) * G, 0), f(m.potenciaPico * masaSistema(x), 0), f(m.impulsoBWs * masaSistema(x) * G, 0)];
 }
 $('btn-csv-ses').onclick = function () {
     var a = A(); if (!a || !a.saltos.length) { $('msg-reg').innerHTML = '<div class="msg av">Aún no hay saltos.</div>'; return; }
