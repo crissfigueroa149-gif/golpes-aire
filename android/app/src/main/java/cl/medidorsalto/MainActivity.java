@@ -69,7 +69,17 @@ public class MainActivity extends Activity implements SensorEventListener {
             @Override
             public void onReceivedError(WebView v, WebResourceRequest r, android.webkit.WebResourceError e) {
                 // sin internet: usar la copia que viene dentro de la app
-                if (r.isForMainFrame() && !ASSET.equals(r.getUrl().toString())) v.loadUrl(ASSET);
+                if (r.isForMainFrame() && !ASSET.equals(r.getUrl().toString())) {
+                    Toast.makeText(MainActivity.this, "Sin conexión con la página (" + e.getDescription() + "): usando la copia interna", Toast.LENGTH_LONG).show();
+                    v.loadUrl(ASSET);
+                }
+            }
+            @Override
+            public void onReceivedHttpError(WebView v, WebResourceRequest r, WebResourceResponse e) {
+                if (r.isForMainFrame() && !ASSET.equals(r.getUrl().toString()) && e.getStatusCode() >= 400) {
+                    Toast.makeText(MainActivity.this, "La página respondió " + e.getStatusCode() + ": usando la copia interna", Toast.LENGTH_LONG).show();
+                    v.loadUrl(ASSET);
+                }
             }
         });
         web.addJavascriptInterface(new Puente(), "AndroidSensor");
@@ -83,7 +93,9 @@ public class MainActivity extends Activity implements SensorEventListener {
         });
         sm = (SensorManager) getSystemService(SENSOR_SERVICE);
         acc = sm.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
-        web.loadUrl(WEB);
+        s.setCacheMode(WebSettings.LOAD_NO_CACHE);
+        web.clearCache(true);
+        web.loadUrl(WEB + "?v=" + System.currentTimeMillis());
     }
 
     class Puente {
