@@ -17,7 +17,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with: { gradle-version: '8.7' }
       - name: Copiar la página a la app
-        run: cp salto/index.html android/app/src/main/assets/index.html
+        run: mkdir -p android/app/src/main/assets && cp salto/index.html android/app/src/main/assets/index.html
       - name: Compilar
         working-directory: android
         run: gradle assembleDebug --no-daemon
