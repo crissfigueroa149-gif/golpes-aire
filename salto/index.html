@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Perfil F-V con celular</title>
+<title>Medidor de salto con celular</title>
 <style>
 :root{
   --bg:#F5F4FA;--card:#fff;--fg:#1C1633;--soft:#5D5878;--tenue:#9C97B5;--borde:#E4E1EF;
@@ -71,18 +71,16 @@ ul.av{margin:6px 0 0;padding-left:18px;font-size:13px;color:var(--aviso-fg)}
 </head>
 <body>
 <header>
-  <h1>Perfil F-V vertical con el celular</h1>
-  <div class="sub">El acelerómetro mide el tiempo de vuelo de cada salto (h = g·t²/8) y calcula el perfil fuerza-velocidad (Samozino).</div>
+  <h1>Medidor de salto con el celular</h1>
+  <div class="sub">El acelerómetro mide el tiempo de vuelo (h = g·t²/8) y dibuja la curva fuerza-tiempo de cada salto.</div>
   <div class="franja"></div>
 </header>
 <nav id="nav">
   <button data-t="atleta" class="on">1 · Atleta</button>
   <button data-t="medir">2 · Medir</button>
-  <button data-t="result">3 · Resultado</button>
-  <button data-t="hist">4 · Historial</button>
+  <button data-t="hist">3 · Historial</button>
 </nav>
 
-<!-- ===================== ATLETA ===================== -->
 <section id="s-atleta" class="on">
   <div class="card">
     <h2>Deportista</h2>
@@ -103,24 +101,14 @@ ul.av{margin:6px 0 0;padding-left:18px;font-size:13px;color:var(--aviso-fg)}
     </div>
   </div>
   <div class="card" id="card-datos">
-    <h2>Datos para el cálculo</h2>
-    <div class="fila2">
-      <div><label for="peso">Peso (kg)</label><input id="peso" inputmode="decimal" placeholder="75"></div>
-      <div><label for="ensayos">Saltos por carga</label>
-        <select id="ensayos"><option>1</option><option selected>2</option><option>3</option></select></div>
-      <div><label for="cp">Cadera–piso de pie (m)</label><input id="cp" inputmode="decimal" placeholder="0,95"></div>
-      <div><label for="c90">Cadera–piso a 90° (m)</label><input id="c90" inputmode="decimal" placeholder="0,50"></div>
-    </div>
-    <div class="sub" id="hpo-txt" style="margin-top:6px"></div>
-    <label for="cargas">Cargas (% del peso corporal, separadas por coma)</label>
-    <input id="cargas" value="0, 20, 40, 60, 80">
-    <div class="sub" style="margin-top:6px">hPO = cadera de pie − cadera a 90° (recorrido del impulso). Mide con el deportista descalzo, en metros.</div>
-    <div id="msg-datos"></div>
+    <h2>Datos</h2>
+    <label for="peso">Peso (kg) — opcional, permite mostrar la fuerza en newtons</label>
+    <input id="peso" inputmode="decimal" placeholder="75">
     <div class="fila" style="margin-top:10px"><button class="b f" id="btn-ir-medir">Ir a medir ▸</button></div>
+    <div id="msg-datos"></div>
   </div>
 </section>
 
-<!-- ===================== MEDIR ===================== -->
 <section id="s-medir">
   <div class="card">
     <h2>Sensor de movimiento</h2>
@@ -134,55 +122,49 @@ ul.av{margin:6px 0 0;padding-left:18px;font-size:13px;color:var(--aviso-fg)}
     <div class="sub" style="margin-top:4px">Línea de arriba: choque (impulso/aterrizaje). Línea de abajo: umbral de «caída libre». El salto se detecta cuando la señal baja de la línea de abajo.</div>
     <label for="bajo">Umbral de caída libre: <b id="bajo-v">4,5</b> m/s²</label>
     <input type="range" id="bajo" min="2" max="8" step="0.5" value="4.5">
-    <div class="msg av" style="margin-top:8px">Pon el celular <b>fijo a la cintura</b> (cinturón o banda, pantalla hacia afuera) o en el bolsillo delantero con el pantalón ajustado. Si va suelto o en la mano, la medida no sirve. Salta con las manos en la cintura.</div>
+    <div class="msg av" style="margin-top:8px">Pon el celular <b>fijo a la cintura</b> (cinturón o banda, pantalla hacia afuera) o en el bolsillo delantero con el pantalón ajustado. <b>Quédate quieto 1 segundo</b> antes de cada salto: el celular usa ese reposo para medir tu peso y la vertical.</div>
   </div>
 
-  <div class="card" style="text-align:center">
-    <div class="sub" id="obj-txt">Elige la carga y salta</div>
-    <div class="gran" id="ult-h">—</div>
-    <div class="sub" id="ult-d">Último salto detectado</div>
-    <div class="fila" style="justify-content:center;margin-top:8px">
-      <button class="b g" id="btn-desc">Descartar último</button>
+  <div class="card">
+    <div class="fila2">
+      <div><label for="tipo">Tipo de salto</label>
+        <select id="tipo"><option>CMJ</option><option>SJ</option><option>CMJ con brazos</option><option>Otro</option></select></div>
+      <div><label for="extra">Carga extra (kg)</label><input id="extra" inputmode="decimal" value="0"></div>
+    </div>
+    <div style="text-align:center;margin-top:10px">
+      <div class="gran" id="ult-h">—</div>
+      <div class="sub" id="ult-d">Último salto detectado</div>
+      <div class="fila" style="justify-content:center;margin-top:8px"><button class="b g" id="btn-desc">Descartar último</button></div>
     </div>
   </div>
 
   <div class="card">
     <h2>Curva fuerza-tiempo del salto</h2>
-    <div id="curva-medir"><div class="sub">Haz un salto (quédate quieto 1 s antes) o toca un salto del registro para ver su curva.</div></div>
+    <div id="curva-medir"><div class="sub">Haz un salto (quieto 1 s antes) o toca un salto del registro para ver su curva.</div></div>
   </div>
 
   <div class="card">
-    <h2>Saltos por carga</h2>
-    <div class="scroll"><table id="tb-medir"></table></div>
-    <div class="sub" style="margin-top:6px">Toca una fila para elegir a qué carga se asigna el siguiente salto. Avanza sola cuando completas los saltos de esa carga.</div>
-    <label for="man-h">Añadir un salto a mano (altura en cm)</label>
-    <div class="fila"><input id="man-h" inputmode="decimal" style="flex:1" placeholder="32,5"><button class="b t" id="btn-man">Añadir</button></div>
-    <div class="fila" style="margin-top:10px"><button class="b f" id="btn-ir-res">Calcular perfil ▸</button></div>
-  </div>
-
-  <div class="card">
-    <h2>Registro de saltos de esta sesión</h2>
+    <h2>Registro de la sesión</h2>
+    <div class="sub" id="resumen-ses" style="margin-bottom:6px"></div>
+    <canvas id="cv-barras" height="150" style="margin-bottom:8px"></canvas>
     <div class="scroll"><table id="tb-reg" class="clic"></table></div>
     <div class="fila" style="margin-top:10px">
-      <button class="b t" id="btn-csv-ses">⬇ CSV de los saltos</button>
-      <button class="b g" id="btn-raw-ses">⬇ Señal cruda del sensor</button>
+      <button class="b f" id="btn-guardar-ses">Guardar sesión</button>
+      <button class="b t" id="btn-csv-ses">⬇ CSV</button>
+      <button class="b g" id="btn-raw-ses">⬇ Señal cruda</button>
     </div>
-    <div class="sub" style="margin-top:6px">Cada salto guarda: hora, carga, tiempo de vuelo, altura, velocidad de despegue, picos de aceleración del impulso y del aterrizaje, y la señal del sensor (2,5 s antes a 0,8 s después, con los 3 ejes). Los descartados quedan marcados, no se borran.</div>
+    <label for="man-h">Añadir un salto a mano (altura en cm)</label>
+    <div class="fila"><input id="man-h" inputmode="decimal" style="flex:1" placeholder="32,5"><button class="b t" id="btn-man">Añadir</button></div>
+    <div class="sub" style="margin-top:6px">Cada salto guarda tipo, carga, hora, tiempo de vuelo, altura, velocidad de despegue, métricas de la curva y la señal del sensor (2,5 s antes a 0,8 s después, 3 ejes). Los descartados quedan marcados, no se borran. «Guardar sesión» los pasa al historial y deja el registro en blanco.</div>
     <div id="msg-reg"></div>
   </div>
 </section>
 
-<!-- ===================== RESULTADO ===================== -->
-<section id="s-result">
-  <div class="card" id="card-res"></div>
-</section>
-
-<!-- ===================== HISTORIAL ===================== -->
 <section id="s-hist">
   <div class="card">
     <h2 id="hist-tit">Historial</h2>
     <canvas id="cv-hist" height="190"></canvas>
-    <div class="scroll" style="margin-top:8px"><table id="tb-hist"></table></div>
+    <div class="scroll" style="margin-top:8px"><table id="tb-hist" class="clic"></table></div>
     <div id="det-ses"></div>
     <div id="curva-hist"></div>
     <div class="fila" style="margin-top:10px">
@@ -197,19 +179,7 @@ ul.av{margin:6px 0 0;padding-left:18px;font-size:13px;color:var(--aviso-fg)}
 <script>
 // <nucleo>
 var G = 9.81;
-var RANGO_F0 = [15, 60], RANGO_V0 = [1.5, 6];
-
 function aNumero(t) { var n = parseFloat(String(t).trim().replace(',', '.')); return isFinite(n) ? n : NaN; }
-
-function parsearCargas(texto) {
-    var partes = String(texto).split(/[,;\s]+/).filter(Boolean);
-    var v = partes.map(Number);
-    if (v.some(function (x) { return !isFinite(x); })) throw new Error('Las cargas deben ser números separados por coma (ej. 0, 20, 40, 60, 80).');
-    v = v.filter(function (x, i) { return v.indexOf(x) === i; }).sort(function (a, b) { return a - b; });
-    if (v.length < 2) throw new Error('Necesitas al menos 2 cargas distintas.');
-    if (v[0] < 0 || v[v.length - 1] > 150) throw new Error('Las cargas deben estar entre 0 y 150 % del peso corporal.');
-    return v;
-}
 
 // Detector de salto: caída libre (|a| ~ 0) precedida por un impulso y seguida por un choque de aterrizaje.
 function crearDetectorSalto(cfg) {
@@ -247,92 +217,6 @@ function crearDetectorSalto(cfg) {
     };
 }
 
-function regresion(x, y) {
-    var n = x.length, sx = 0, sy = 0, sxx = 0, sxy = 0, syy = 0;
-    for (var i = 0; i < n; i++) { sx += x[i]; sy += y[i]; sxx += x[i] * x[i]; sxy += x[i] * y[i]; syy += y[i] * y[i]; }
-    var d = n * sxx - sx * sx;
-    var pend = (n * sxy - sx * sy) / d, inter = (sy - pend * sx) / n;
-    var r = (n * sxy - sx * sy) / Math.sqrt((n * sxx - sx * sx) * (n * syy - sy * sy));
-    return { pend: pend, inter: inter, r: r };
-}
-
-function alturaModelo(Pmax, Sfv, hpo) {
-    var F0 = 2 * Math.sqrt(-Pmax * Sfv);
-    var d = Sfv * Sfv / 4 + (2 / hpo) * (F0 - G);
-    if (d < 0) return 0;
-    var q = Math.sqrt(d) + Sfv / 2;
-    return hpo * hpo / (2 * G) * q * q;
-}
-
-function sfvOptimo(Pmax, hpo, alpha) {
-    var U = G * Math.sin(alpha * Math.PI / 180);
-    var S = Math.cbrt(-Math.pow(U, 6) * Math.pow(hpo, 6) - 18 * Math.pow(U, 3) * Math.pow(hpo, 5) * Pmax * Pmax
-        - 54 * Math.pow(hpo, 4) * Math.pow(Pmax, 4)
-        + 6 * Math.sqrt(3) * Math.sqrt(2 * Math.pow(U, 3) * Math.pow(hpo, 9) * Math.pow(Pmax, 6) + 27 * Math.pow(hpo, 8) * Math.pow(Pmax, 8)));
-    return -(U * U / (3 * Pmax)) - (-Math.pow(U, 4) * Math.pow(hpo, 4) - 12 * U * Math.pow(hpo, 3) * Pmax * Pmax)
-        / (3 * hpo * hpo * Pmax * S) + S / (3 * hpo * hpo * Pmax);
-}
-
-// peso (kg), hpo (m), extras (kg), alturas (m: mejor salto de cada carga)
-function calcularPerfil(peso, hpo, extras, alturas) {
-    var Fabs = [], v = [];
-    for (var i = 0; i < alturas.length; i++) {
-        Fabs.push((peso + extras[i]) * G * (alturas[i] / hpo + 1));
-        v.push(Math.sqrt(G * alturas[i] / 2));
-    }
-    var rg = regresion(v, Fabs);
-    var res = { v: v, Frel: Fabs.map(function (f) { return f / peso; }), r: rg.r, r2: rg.r * rg.r, valido: true, motivo: '' };
-    var F0 = rg.inter / peso, Sfv = rg.pend / peso;
-    var vmax = Math.max.apply(null, v);
-    if (!(Sfv < 0) || !(F0 > 0) || (-F0 / Sfv) <= vmax) {
-        res.valido = false; res.F0 = F0; res.Sfv = Sfv;
-        res.motivo = 'relación F-v no válida (pendiente no negativa o V0 menor que la velocidad máxima medida)';
-        return res;
-    }
-    var V0 = -F0 / Sfv, Pmax = F0 * V0 / 4;
-    var o90 = sfvOptimo(Pmax, hpo, 90), o30 = sfvOptimo(Pmax, hpo, 30);
-    var ratio90 = Sfv / o90 * 100, ratio30 = Sfv / o30 * 100;
-    var F0opt = Math.sqrt(4 * Pmax * -o90), F0opt30 = Math.sqrt(4 * Pmax * -o30);
-    var hReal = alturaModelo(Pmax, Sfv, hpo), hMax = alturaModelo(Pmax, o90, hpo);
-    Object.assign(res, { F0: F0, V0: V0, Pmax: Pmax, Sfv: Sfv, sfvOpt90: o90, sfvOpt30: o30, ratio90: ratio90, ratio30: ratio30,
-        fvimb: Math.abs(100 - ratio90), F0opt: F0opt, V0opt: 4 * Pmax / F0opt, F0opt30: F0opt30, V0opt30: 4 * Pmax / F0opt30,
-        perdida: hMax > 0 ? (1 - hReal / hMax) * 100 : 0 });
-    return res;
-}
-
-function clasificarPerfil(r90) {
-    if (r90 < 90) return 'DÉFICIT DE FUERZA';
-    if (r90 > 110) return 'DÉFICIT DE VELOCIDAD';
-    return 'PERFIL EQUILIBRADO';
-}
-
-function controlesCalidad(cargasPct, ensayos, r, hpo) {
-    var av = [];
-    var pares = [];
-    for (var i = 0; i < cargasPct.length; i++) {
-        var hs = ensayos[i];
-        if (!hs || !hs.length) continue;
-        var mx = Math.max.apply(null, hs), mn = Math.min.apply(null, hs);
-        pares.push([cargasPct[i], mx]);
-        if (hs.length >= 2 && mx > 0) {
-            var dif = (mx - mn) / mx * 100;
-            if (dif > 10) av.push(cargasPct[i] + ' % PC: los saltos difieren ' + dif.toFixed(0) + ' % entre sí (' + (mn * 100).toFixed(1) + ' y ' + (mx * 100).toFixed(1) + ' cm). Repite el salto.');
-        }
-    }
-    for (var k = 0; k < pares.length - 1; k++) {
-        if (pares[k + 1][1] >= pares[k][1])
-            av.push('La altura no baja al subir la carga: ' + pares[k][0] + ' % → ' + (pares[k][1] * 100).toFixed(1) + ' cm; ' + pares[k + 1][0] + ' % → ' + (pares[k + 1][1] * 100).toFixed(1) + ' cm.');
-    }
-    var alt = pares.map(function (p) { return p[1]; });
-    if (Math.max.apply(null, alt) > 0.80 || Math.min.apply(null, alt) < 0.05)
-        av.push('Alturas poco plausibles (' + (Math.min.apply(null, alt) * 100).toFixed(1) + '–' + (Math.max.apply(null, alt) * 100).toFixed(1) + ' cm). Revisa dónde llevas el celular y el umbral.');
-    if (hpo < 0.20 || hpo > 0.70) av.push('hPO = ' + hpo.toFixed(2) + ' m sale del rango orientativo (0,20–0,70 m). Revisa que las alturas de cadera estén en metros.');
-    if (pares.length < 3) av.push('Con menos de 3 cargas el perfil es poco fiable.');
-    if (r.r2 < 0.90) av.push('Ajuste lineal débil (r² = ' + r.r2.toFixed(2) + '). Conviene repetir algún salto.');
-    if (r.F0 < RANGO_F0[0] || r.F0 > RANGO_F0[1] || r.V0 < RANGO_V0[0] || r.V0 > RANGO_V0[1])
-        av.push('F0 = ' + r.F0.toFixed(1) + ' N/kg y V0 = ' + r.V0.toFixed(2) + ' m/s salen del rango habitual en saltos verticales; revisa hPO y los saltos.');
-    return av;
-}
 
 // Análisis fuerza-tiempo de un salto a partir de la señal triaxial del celular (a cintura).
 // S: [[t_s, x, y, z], ...] con accelerationIncludingGravity; t0/t1: despegue y aterrizaje (s).
@@ -441,22 +325,24 @@ function analizarSalto(S, t0, t1) {
 
 /* ==================== Interfaz ==================== */
 var $ = function (id) { return document.getElementById(id); };
-var CLAVE = 'perfilFVCelular_v1';
+var CLAVE = 'medidorSaltoCelular_v1', CLAVE_VIEJA = 'perfilFVCelular_v1';
 var DB = { atletas: {}, actual: '' };
-try { var g = localStorage.getItem(CLAVE); if (g) DB = JSON.parse(g); } catch (e) {}
-if (!DB.atletas) DB = { atletas: {}, actual: '' };
-// migración: versión anterior guardaba solo alturas por carga
-Object.keys(DB.atletas).forEach(function (n) {
-    var a = DB.atletas[n];
-    if (!a.saltos) {
-        a.saltos = [];
-        Object.keys(a.medidas || {}).forEach(function (i) {
-            (a.medidas[i] || []).forEach(function (h) { a.saltos.push({ id: nuevoIdIni(), fecha: new Date().toISOString(), i: +i, pct: null, extraKg: null, valido: true, altura: h, vuelo: Math.sqrt(8 * h / 9.81), vDespegue: Math.sqrt(2 * 9.81 * h), fuente: 'manual' }); });
-        });
-        delete a.medidas;
+try {
+    var g = localStorage.getItem(CLAVE);
+    if (g) DB = JSON.parse(g);
+    else {   // migra lo guardado por la versión con perfil F-V
+        var v = localStorage.getItem(CLAVE_VIEJA);
+        if (v) {
+            var old = JSON.parse(v);
+            Object.keys(old.atletas || {}).forEach(function (n) {
+                var o = old.atletas[n];
+                DB.atletas[n] = { nombre: n, peso: o.peso || '', saltos: (o.saltos || []).map(function (x) { return Object.assign({ tipo: 'CMJ', extraKg: x.extraKg || 0 }, x); }), sesiones: (o.sesiones || []).map(function (se) { return { id: se.id, fecha: se.fecha, saltos: (se.saltos || []).map(function (x) { return Object.assign({ tipo: 'CMJ', extraKg: x.extraKg || 0 }, x); }) }; }) };
+            });
+            DB.actual = old.actual || '';
+        }
     }
-});
-function nuevoIdIni() { return Date.now() * 1000 + Math.floor(Math.random() * 1000); }
+} catch (e) {}
+if (!DB.atletas) DB = { atletas: {}, actual: '' };
 function guardarDB() {
     for (var intento = 0; intento < 40; intento++) {
         try { localStorage.setItem(CLAVE, JSON.stringify(DB)); return; }
@@ -472,13 +358,15 @@ function guardarDB() {
 function A() { return DB.atletas[DB.actual] || null; }
 function fmt(x, d) { return (x === null || x === undefined || !isFinite(x)) ? '—' : x.toFixed(d).replace('.', ','); }
 function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+function hora(iso) { return new Date(iso).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', second: '2-digit' }); }
+function fechaCorta(iso) { return new Date(iso).toLocaleDateString('es-CL'); }
+function nuevoId() { return Date.now() * 1000 + Math.floor(Math.random() * 1000); }
 
 /* ---------- pestañas ---------- */
 function irA(t) {
     document.querySelectorAll('nav button').forEach(function (b) { b.classList.toggle('on', b.dataset.t === t); });
     document.querySelectorAll('section').forEach(function (s) { s.classList.toggle('on', s.id === 's-' + t); });
-    if (t === 'medir') { pintarMedir(); }
-    if (t === 'result') pintarResultado();
+    if (t === 'medir') pintarMedir();
     if (t === 'hist') pintarHistorial();
     window.scrollTo(0, 0);
 }
@@ -490,27 +378,14 @@ function llenarSelect() {
     sel.innerHTML = nombres.length ? nombres.map(function (n) { return '<option' + (n === DB.actual ? ' selected' : '') + '>' + esc(n) + '</option>'; }).join('') : '<option value="">(crea un deportista)</option>';
     $('card-datos').style.opacity = A() ? 1 : .45;
 }
-function cargarFormulario() {
-    var a = A();
-    ['peso', 'cp', 'c90', 'cargas'].forEach(function (k) { $(k).value = a ? (a[k] || '') : ''; });
-    $('ensayos').value = a ? a.nEns : '2';
-    actualizarHpo();
-}
-function actualizarHpo() {
-    var p = aNumero($('cp').value), q = aNumero($('c90').value);
-    $('hpo-txt').textContent = (isFinite(p) && isFinite(q) && p > q) ? 'hPO = ' + fmt(p - q, 3) + ' m' : '';
-}
-function nuevoAtleta(n) {
-    return { nombre: n, peso: '', cp: '', c90: '', cargas: '0, 20, 40, 60, 80', nEns: 2, saltos: [], activa: 0, sesiones: [] };
-}
+function cargarFormulario() { var a = A(); $('peso').value = a ? (a.peso || '') : ''; }
 $('sel-atleta').addEventListener('change', function () { DB.actual = this.value; guardarDB(); cargarFormulario(); pintarMedir(); });
 $('btn-nuevo').onclick = function () { $('panel-nuevo').hidden = false; $('panel-borrar').hidden = true; $('inp-nuevo').value = ''; $('inp-nuevo').focus(); };
 $('btn-cancelar').onclick = function () { $('panel-nuevo').hidden = true; };
 $('btn-crear').onclick = function () {
-    var n = $('inp-nuevo').value.trim();
-    if (!n) return;
-    if (DB.atletas[n]) { DB.actual = n; } else { DB.atletas[n] = nuevoAtleta(n); DB.actual = n; }
-    guardarDB(); $('panel-nuevo').hidden = true; llenarSelect(); cargarFormulario();
+    var n = $('inp-nuevo').value.trim(); if (!n) return;
+    if (!DB.atletas[n]) DB.atletas[n] = { nombre: n, peso: '', saltos: [], sesiones: [] };
+    DB.actual = n; guardarDB(); $('panel-nuevo').hidden = true; llenarSelect(); cargarFormulario();
 };
 $('btn-borrar').onclick = function () { if (!A()) return; $('panel-borrar').hidden = false; $('panel-nuevo').hidden = true; };
 $('btn-borrar-no').onclick = function () { $('panel-borrar').hidden = true; };
@@ -518,37 +393,23 @@ $('btn-borrar-si').onclick = function () {
     delete DB.atletas[DB.actual]; DB.actual = Object.keys(DB.atletas).sort()[0] || '';
     guardarDB(); $('panel-borrar').hidden = true; llenarSelect(); cargarFormulario();
 };
-['peso', 'cp', 'c90', 'cargas'].forEach(function (k) {
-    $(k).addEventListener('input', function () { var a = A(); if (!a) return; a[k] = this.value; guardarDB(); actualizarHpo(); });
-});
-$('ensayos').addEventListener('change', function () { var a = A(); if (!a) return; a.nEns = +this.value; guardarDB(); });
-
-function datosAtleta() {
-    var a = A();
-    if (!a) throw new Error('Primero crea o elige un deportista.');
-    var peso = aNumero(a.peso), cp = aNumero(a.cp), c90 = aNumero(a.c90);
-    if (!(peso >= 20 && peso <= 250)) throw new Error('El peso debe estar en kg (entre 20 y 250).');
-    if (!isFinite(cp) || !isFinite(c90)) throw new Error('Falta la altura de cadera de pie y a 90°.');
-    if (cp > 3 || c90 > 3) throw new Error('Las alturas de cadera parecen estar en centímetros. Escríbelas en metros (ej. 0,95 y 0,50).');
-    if (cp <= c90) throw new Error('La cadera de pie debe ser mayor que la de 90°.');
-    return { peso: peso, hpo: cp - c90, cargas: parsearCargas(a.cargas) };
-}
+$('peso').addEventListener('input', function () { var a = A(); if (!a) return; a.peso = this.value; guardarDB(); });
 $('btn-ir-medir').onclick = function () {
-    try { datosAtleta(); $('msg-datos').innerHTML = ''; irA('medir'); }
-    catch (e) { $('msg-datos').innerHTML = '<div class="msg er">' + esc(e.message) + '</div>'; }
+    if (!A()) { $('msg-datos').innerHTML = '<div class="msg er">Primero crea o elige un deportista.</div>'; return; }
+    $('msg-datos').innerHTML = ''; irA('medir');
 };
 
-/* ---------- medir ---------- */
-var sensor = { activo: false, n: 0, hz: 0, ultimoSeg: 0, cuenta: 0, handler: null };
-var buf = [];                       // [t, m, enVuelo]
+/* ---------- sensor ---------- */
+var sensor = { activo: false, n: 0, hz: 0, cuenta: 0 };
+var buf = [];                       // [t, módulo, x, y, z]
 var detector = crearDetectorSalto({ bajo: 4.5 });
 var sonidoCtx = null;
 function beep(f, ms) {
     try {
         sonidoCtx = sonidoCtx || new (window.AudioContext || window.webkitAudioContext)();
-        var o = sonidoCtx.createOscillator(), g = sonidoCtx.createGain();
-        o.frequency.value = f; o.type = 'sine'; g.gain.value = .15;
-        o.connect(g); g.connect(sonidoCtx.destination); o.start(); o.stop(sonidoCtx.currentTime + ms / 1000);
+        var o = sonidoCtx.createOscillator(), gn = sonidoCtx.createGain();
+        o.frequency.value = f; o.type = 'sine'; gn.gain.value = .15;
+        o.connect(gn); gn.connect(sonidoCtx.destination); o.start(); o.stop(sonidoCtx.currentTime + ms / 1000);
     } catch (e) {}
 }
 function alMovimiento(ev) {
@@ -581,8 +442,7 @@ $('btn-sensor').onclick = function () {
     };
     if (typeof DeviceMotionEvent.requestPermission === 'function') {
         var lanzado = false, ir = function () { if (!lanzado) { lanzado = true; iniciar(); } };
-        // Si el navegador no responde (algunos Chrome exponen la función sin mostrar diálogo), se activa igual
-        var plazo = setTimeout(ir, 4000);
+        var plazo = setTimeout(ir, 4000);   // algunos Chrome exponen la función sin mostrar diálogo
         DeviceMotionEvent.requestPermission().then(function (r) {
             clearTimeout(plazo);
             if (r === 'granted') ir();
@@ -612,30 +472,35 @@ function dibujarSenal() {
     if (!buf.length) { c.fillStyle = css.getPropertyValue('--tenue'); c.font = '13px sans-serif'; c.fillText('Activa el sensor para ver la señal', 12, h / 2); return; }
     var tf = buf[buf.length - 1][0], x = function (t) { return w - (tf - t) / 3 * w; };
     (buf.marcas || []).forEach(function (m) { c.fillStyle = 'rgba(13,148,136,.22)'; c.fillRect(x(m.t0), 0, Math.max(2, x(m.t1) - x(m.t0)), h); });
-    c.strokeStyle = '#DB2777'; c.lineWidth = 1.6; c.beginPath();
-    buf.forEach(function (p, i) { if (i) c.lineTo(x(p[0]), y(p[1])); else c.moveTo(x(p[0]), y(p[1])); }); c.stroke();
+    c.strokeStyle = '#DB2777'; c.lineWidth = 1.6; c.beginPath(); var ini = false;
+    buf.forEach(function (p) { if (p[0] < tf - 3) return; if (ini) c.lineTo(x(p[0]), y(p[1])); else { c.moveTo(x(p[0]), y(p[1])); ini = true; } }); c.stroke();
 }
-(function bucle() { if (document.getElementById('s-medir').classList.contains('on')) dibujarSenal(); requestAnimationFrame(bucle); })();
+(function bucle() { if ($('s-medir').classList.contains('on')) dibujarSenal(); requestAnimationFrame(bucle); })();
 
-function ensayos() { var a = A(); return a ? a.nEns : 2; }
-function nuevoId() { return Date.now() * 1000 + Math.floor(Math.random() * 1000); }
-function validosPorCarga(a) {
-    var m = {};
-    (a.saltos || []).forEach(function (s) { if (s.valido !== false) (m[s.i] = m[s.i] || []).push(s); });
-    return m;
+/* ---------- saltos ---------- */
+function extraKg() { var e = aNumero($('extra').value); return isFinite(e) && e >= 0 ? e : 0; }
+function agregarSalto(datos) {
+    var a = A();
+    if (!a) { $('ult-d').textContent = 'Primero crea un deportista (pestaña 1).'; return null; }
+    var rec = Object.assign({ id: nuevoId(), fecha: new Date().toISOString(), tipo: $('tipo').value, extraKg: extraKg(), valido: true }, datos);
+    delete rec._t0; delete rec._t1;
+    rec.vDespegue = Math.sqrt(2 * G * rec.altura);          // = g·t/2
+    a.saltos.push(rec); a.ultimo = rec.id;
+    guardarDB(); pintarMedir();
+    return rec;
 }
 function registrarSalto(r) {
     $('ult-h').textContent = fmt(r.altura * 100, 1) + ' cm';
     $('ult-d').textContent = 'Tiempo de vuelo ' + fmt(r.vuelo, 3) + ' s · v despegue ' + fmt(G * r.vuelo / 2, 2) + ' m/s';
     beep(880, 90); try { navigator.vibrate && navigator.vibrate(60); } catch (e) {}
-    if (!A()) return;
     var rec = agregarSalto({ altura: r.altura, vuelo: r.vuelo, fuente: 'sensor', hz: sensor.hz || null, _t0: r.t0, _t1: r.t1 });
-    if (rec) setTimeout(function () { completarSalto(rec.id, r); }, 650);
+    if (rec) setTimeout(function () { completarSalto(rec.id, r); }, 900);
 }
+function buscar(saltos, id) { return (saltos || []).filter(function (x) { return x.id === id; })[0]; }
 // Con el aterrizaje ya registrado se completan los picos, la señal triaxial y el análisis por fases
 function completarSalto(id, r) {
     var a = A(); if (!a) return;
-    var rec = (a.saltos || []).filter(function (x) { return x.id === id; })[0]; if (!rec) return;
+    var rec = buscar(a.saltos, id); if (!rec) return;
     var pi = 0, pa = 0, raw = [], red = function (z) { return Math.round(z * 100) / 100; };
     buf.forEach(function (p) {
         if (p[0] >= r.t0 - 0.8 && p[0] <= r.t0 && p[1] > pi) pi = p[1];
@@ -646,29 +511,82 @@ function completarSalto(id, r) {
     var an = analizarRec(rec);
     if (!an.error) rec.met = an.m;
     guardarDB(); pintarMedir();
-    if (a.ultimo === id || !a.ultimo) mostrarCurva('curva-medir', rec);
+    if (a.ultimo === id) mostrarCurva('curva-medir', rec);
 }
 function analizarRec(rec) {
-    if (!rec.raw || !rec.raw.length || rec.raw[0].length < 4) return { error: 'Este salto no tiene señal triaxial guardada (solo los medidos con el sensor, con esta versión).' };
+    if (!rec.raw || !rec.raw.length || rec.raw[0].length < 4) return { error: 'Este salto no tiene señal del sensor guardada (los puestos a mano no la tienen).' };
     return analizarSalto(rec.raw.map(function (p) { return [p[0] / 1000, p[1], p[2], p[3]]; }), 0, rec.vuelo);
 }
-var COLOR = { desc: '#FDBA74', fren: '#F97316', dec: '#C2410C', p1: '#9CA3AF', p2: '#CBD5E1', aterr: '#D4A373' };
-function mostrarCurva(divId, rec) {
-    var div = $(divId), an = analizarRec(rec);
-    if (an.error) { div.innerHTML = '<div class="msg av">' + esc(an.error) + '</div>'; return; }
-    var mm = an.m;
-    div.innerHTML = '<canvas id="cv-' + divId + '" height="270"></canvas>' +
-        '<div class="leyenda"><span><i style="background:' + COLOR.desc + '"></i>Descarga</span><span><i style="background:' + COLOR.fren + '"></i>Frenado</span><span><i style="background:' + COLOR.dec + '"></i>Deceleración</span>' +
-        '<span><i style="background:' + COLOR.p1 + '"></i>Concéntrica P1</span>' + (an.t.p1p2 !== null ? '<span><i style="background:' + COLOR.p2 + '"></i>P2</span>' : '') + '<span><i style="background:' + COLOR.aterr + '"></i>Aterrizaje</span></div>' +
-        '<div class="met">' +
-        '<div>Fuerza pico<b>' + fmt(mm.picoBW, 2) + ' BW</b></div><div>RFD máx.<b>' + fmt(mm.rfdBWs, 1) + ' BW/s</b></div>' +
-        '<div>Descarga<b>' + fmt(mm.descargaS * 1000, 0) + ' ms</b></div><div>Frenado<b>' + fmt(mm.frenadoS * 1000, 0) + ' ms</b></div>' +
-        '<div>Concéntrica<b>' + fmt(mm.concentricaS * 1000, 0) + ' ms</b></div><div>Profundidad contramov.<b>' + fmt(mm.profundidadM * 100, 0) + ' cm</b></div>' +
-        '<div>Altura (tiempo de vuelo)<b>' + fmt(mm.hVuelo * 100, 1) + ' cm</b></div><div>Altura (impulso)<b>' + fmt(mm.hImp * 100, 1) + ' cm</b></div>' +
-        '<div>Potencia pico<b>' + fmt(mm.potenciaPico, 1) + ' W/kg</b></div><div>Pico de aterrizaje<b>' + fmt(mm.picoAterrizajeBW, 1) + ' BW</b></div></div>' +
-        '<div class="sub" style="margin-top:6px">Es una aproximación con el acelerómetro del celular en la cintura (≈60 lecturas/s); una plataforma de fuerza mide a 1000/s. La altura por impulso debería parecerse a la del tiempo de vuelo: si difieren mucho, la señal no es confiable.</div>';
-    dibujarCurva($('cv-' + divId), an);
+$('btn-desc').onclick = function () {
+    var a = A(); if (!a || !a.ultimo) return;
+    var rec = buscar(a.saltos, a.ultimo); if (rec) rec.valido = false;
+    a.ultimo = null; guardarDB(); pintarMedir(); $('ult-h').textContent = '—'; $('ult-d').textContent = 'Salto descartado (queda en el registro)';
+};
+$('btn-man').onclick = function () {
+    var h = aNumero($('man-h').value);
+    if (!(h >= 3 && h <= 150)) { $('ult-d').textContent = 'Altura manual no válida (3–150 cm).'; return; }
+    var alt = h / 100;
+    agregarSalto({ altura: alt, vuelo: Math.sqrt(8 * alt / G), fuente: 'manual' }); $('man-h').value = '';
+};
+
+function filasSaltos(tb, saltos, conHora) {
+    if (!saltos.length) { tb.innerHTML = '<tr><td>Aún no hay saltos registrados.</td></tr>'; return; }
+    var html = '<tr><th>#</th><th>' + (conHora ? 'Hora' : 'Fecha') + '</th><th>Tipo</th><th>Carga</th><th>Vuelo s</th><th>Altura cm</th><th>v desp.</th><th>F pico BW</th><th>Origen</th></tr>';
+    saltos.forEach(function (x, k) {
+        html += '<tr data-id="' + x.id + '"' + (x.valido === false ? ' style="opacity:.5;text-decoration:line-through"' : '') + '><td>' + (k + 1) + '</td><td>' + (conHora ? hora(x.fecha) : fechaCorta(x.fecha)) + '</td><td>' + esc(x.tipo || '') + '</td><td>' +
+            (x.extraKg ? fmt(x.extraKg, 1) + ' kg' : '—') + '</td><td>' + fmt(x.vuelo, 3) + '</td><td><b>' + fmt(x.altura * 100, 1) + '</b></td><td>' + fmt(x.vDespegue, 2) + '</td><td>' + (x.met ? fmt(x.met.picoBW, 2) : '—') + '</td><td>' + (x.fuente === 'manual' ? 'manual' : 'sensor') + '</td></tr>';
+    });
+    tb.innerHTML = html;
 }
+function resumen(saltos) {
+    var v = saltos.filter(function (x) { return x.valido !== false; }).map(function (x) { return x.altura; });
+    if (!v.length) return null;
+    return { n: v.length, mejor: Math.max.apply(null, v), prom: v.reduce(function (p, q) { return p + q; }, 0) / v.length };
+}
+function dibujarBarras(saltos) {
+    var cv = $('cv-barras'); if (!cv.offsetWidth) return;
+    var dpr = window.devicePixelRatio || 1, w = cv.offsetWidth, h = 150;
+    cv.width = w * dpr; cv.height = h * dpr;
+    var c = cv.getContext('2d'); c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, w, h);
+    var css = getComputedStyle(document.documentElement);
+    c.font = '11px sans-serif'; c.textAlign = 'center';
+    var val = saltos.filter(function (x) { return x.valido !== false; });
+    if (!val.length) { c.fillStyle = css.getPropertyValue('--tenue'); c.fillText('Altura de cada salto: aparecerá aquí', w / 2, h / 2); return; }
+    var mx = Math.max.apply(null, val.map(function (x) { return x.altura * 100; })) * 1.2, L = 30, B = 20, T = 14, n = val.length, bw = Math.min(38, (w - L - 8) / n * .7);
+    var Y = function (v) { return h - B - v / mx * (h - B - T); };
+    c.strokeStyle = css.getPropertyValue('--borde'); c.fillStyle = css.getPropertyValue('--soft'); c.textAlign = 'right';
+    for (var k = 0; k <= 3; k++) { var v = mx * k / 3; c.beginPath(); c.moveTo(L, Y(v)); c.lineTo(w - 6, Y(v)); c.stroke(); c.fillText(v.toFixed(0), L - 4, Y(v) + 4); }
+    var mejor = Math.max.apply(null, val.map(function (x) { return x.altura; }));
+    val.forEach(function (x, i) {
+        var cx = L + (i + .5) * (w - L - 8) / n, hh = x.altura * 100;
+        c.fillStyle = x.altura === mejor ? '#0D9488' : '#DB2777'; c.fillRect(cx - bw / 2, Y(hh), bw, Y(0) - Y(hh));
+        c.fillStyle = css.getPropertyValue('--fg'); c.textAlign = 'center'; c.fillText(hh.toFixed(1), cx, Y(hh) - 4);
+        c.fillStyle = css.getPropertyValue('--soft'); c.fillText(i + 1, cx, h - 6);
+    });
+}
+function pintarMedir() {
+    var a = A(), tb = $('tb-reg');
+    if (!a) { tb.innerHTML = '<tr><td>Crea un deportista en la pestaña 1.</td></tr>'; $('resumen-ses').textContent = ''; return; }
+    filasSaltos(tb, a.saltos, true); dibujarBarras(a.saltos);
+    var r = resumen(a.saltos);
+    $('resumen-ses').textContent = r ? r.n + ' salto(s) válido(s) · mejor ' + fmt(r.mejor * 100, 1) + ' cm · promedio ' + fmt(r.prom * 100, 1) + ' cm' : 'Sesión en blanco.';
+}
+$('tb-reg').addEventListener('click', function (e) {
+    var tr = e.target.closest('tr[data-id]'), a = A(); if (!tr || !a) return;
+    var rec = buscar(a.saltos, +tr.dataset.id); if (rec) { a.ultimo = rec.id; mostrarCurva('curva-medir', rec); }
+});
+$('btn-guardar-ses').onclick = function () {
+    var a = A(); if (!a) return;
+    if (!resumen(a.saltos)) { $('msg-reg').innerHTML = '<div class="msg av">No hay saltos válidos para guardar.</div>'; return; }
+    a.sesiones.push({ id: nuevoId(), fecha: new Date().toISOString(), saltos: a.saltos.slice() });
+    a.saltos = []; a.ultimo = null; guardarDB(); pintarMedir();
+    $('curva-medir').innerHTML = '<div class="sub">Sesión guardada. Haz un salto o toca uno del registro para ver su curva.</div>';
+    $('ult-h').textContent = '—'; $('ult-d').textContent = 'Último salto detectado';
+    $('msg-reg').innerHTML = '<div class="msg ok">Sesión guardada con todos sus saltos. Míralos en la pestaña Historial.</div>';
+};
+
+/* ---------- curva fuerza-tiempo ---------- */
+var COLOR = { desc: '#FDBA74', fren: '#F97316', dec: '#C2410C', p1: '#9CA3AF', p2: '#CBD5E1', aterr: '#D4A373' };
 function dibujarCurva(cv, an) {
     var dpr = window.devicePixelRatio || 1, w = cv.offsetWidth, h = 270;
     cv.width = w * dpr; cv.height = h * dpr;
@@ -735,146 +653,23 @@ function dibujarCurva(cv, an) {
     c.fillStyle = css.getPropertyValue('--soft'); c.textAlign = 'center';
     for (var s0 = Math.ceil((xa - t.inicio) / .25) * .25; t.inicio + s0 <= xb; s0 += .25) c.fillText(s0.toFixed(2) + (Math.abs(s0 - Math.round(s0)) < 1e-6 ? ' s' : ''), X(t.inicio + s0), h - 10);
 }
-function agregarSalto(datos) {
-    var a = A(), d;
-    try { d = datosAtleta(); } catch (e) { $('ult-d').textContent = 'Completa los datos del atleta (pestaña 1) antes de medir.'; return null; }
-    a.saltos = a.saltos || [];
-    var i = Math.min(a.activa || 0, d.cargas.length - 1);
-    var rec = Object.assign({ id: nuevoId(), fecha: new Date().toISOString(), i: i, pct: d.cargas[i], extraKg: d.peso * d.cargas[i] / 100, valido: true }, datos);
-    delete rec._t0; delete rec._t1;
-    rec.vDespegue = Math.sqrt(2 * G * rec.altura);          // = g·t/2
-    a.saltos.push(rec);
-    var n = validosPorCarga(a)[i].length;
-    a.activa = (n >= a.nEns && i < d.cargas.length - 1) ? i + 1 : i;
-    a.ultimo = rec.id;
-    guardarDB(); pintarMedir();
-    return rec;
-}
-$('btn-desc').onclick = function () {
-    var a = A(); if (!a || !a.ultimo) return;
-    var rec = (a.saltos || []).filter(function (x) { return x.id === a.ultimo; })[0];
-    if (rec) { rec.valido = false; a.activa = rec.i; }
-    a.ultimo = null; guardarDB(); pintarMedir(); $('ult-h').textContent = '—'; $('ult-d').textContent = 'Salto descartado (queda en el registro)';
-};
-$('btn-man').onclick = function () {
-    var h = aNumero($('man-h').value);
-    if (!(h >= 3 && h <= 100)) { $('ult-d').textContent = 'Altura manual no válida (3–100 cm).'; return; }
-    var alt = h / 100, vuelo = Math.sqrt(8 * alt / G);
-    agregarSalto({ altura: alt, vuelo: vuelo, fuente: 'manual' }); $('man-h').value = '';
-};
-function pintarMedir() {
-    var a = A(), tb = $('tb-medir');
-    if (!a) { tb.innerHTML = '<tr><td>Crea un deportista en la pestaña 1.</td></tr>'; $('tb-reg').innerHTML = ''; return; }
-    var d; try { d = datosAtleta(); } catch (e) { tb.innerHTML = '<tr><td>' + esc(e.message) + '</td></tr>'; return; }
-    var html = '<tr><th>Carga</th><th>Extra</th><th>Saltos (cm)</th><th>Mejor</th></tr>';
-    var sig = Math.min(a.activa || 0, d.cargas.length - 1), val = validosPorCarga(a);
-    d.cargas.forEach(function (pct, i) {
-        var arr = val[i] || [], mejor = arr.length ? Math.max.apply(null, arr.map(function (x) { return x.altura; })) : null;
-        html += '<tr data-i="' + i + '" class="' + (i === sig ? 'act sig' : '') + '"><td>' + pct + ' %</td><td>' + fmt(d.peso * pct / 100, 1) + ' kg</td><td>' +
-            arr.map(function (x) { return '<span class="chip' + (x.altura === mejor ? ' mejor' : '') + '">' + fmt(x.altura * 100, 1) + ' <b data-q="' + x.id + '">×</b></span>'; }).join('') +
-            (arr.length < a.nEns ? '<span class="sub"> ' + (a.nEns - arr.length) + ' por hacer</span>' : '') + '</td><td>' + (mejor === null ? '—' : fmt(mejor * 100, 1)) + '</td></tr>';
-    });
-    tb.innerHTML = html;
-    var carga = d.cargas[sig];
-    $('obj-txt').textContent = 'Próximo salto: carga ' + carga + ' % PC (' + fmt(d.peso * carga / 100, 1) + ' kg extra)';
-    tablaSaltos($('tb-reg'), a.saltos || [], true);
-}
-function hora(iso) { var d = new Date(iso); return d.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', second: '2-digit' }); }
-function tablaSaltos(tb, saltos, conHora) {
-    if (!saltos.length) { tb.innerHTML = '<tr><td>Aún no hay saltos registrados.</td></tr>'; return; }
-    var html = '<tr><th>#</th><th>' + (conHora ? 'Hora' : 'Fecha') + '</th><th>Carga</th><th>Vuelo s</th><th>Altura cm</th><th>v desp. m/s</th><th>Pico imp.</th><th>Pico aterr.</th><th>Origen</th></tr>';
-    saltos.forEach(function (x, k) {
-        html += '<tr data-id="' + x.id + '"' + (x.valido === false ? ' style="opacity:.5;text-decoration:line-through"' : '') + '><td>' + (k + 1) + '</td><td>' + (conHora ? hora(x.fecha) : new Date(x.fecha).toLocaleDateString('es-CL')) + '</td><td>' + x.pct + ' %</td><td>' + fmt(x.vuelo, 3) +
-            '</td><td>' + fmt(x.altura * 100, 1) + '</td><td>' + fmt(x.vDespegue, 2) + '</td><td>' + (x.picoImpulso ? fmt(x.picoImpulso, 1) : '—') + '</td><td>' + (x.picoAterrizaje ? fmt(x.picoAterrizaje, 1) : '—') + '</td><td>' + (x.fuente === 'manual' ? 'manual' : 'sensor') + '</td></tr>';
-    });
-    tb.innerHTML = html;
-}
-$('tb-medir').addEventListener('click', function (e) {
-    var a = A(); if (!a) return;
-    if (e.target.dataset && e.target.dataset.q) {
-        var id = +e.target.dataset.q, rec = (a.saltos || []).filter(function (x) { return x.id === id; })[0];
-        if (rec) { rec.valido = false; a.activa = rec.i; }
-        guardarDB(); pintarMedir(); return;
-    }
-    var tr = e.target.closest('tr[data-i]'); if (tr) { a.activa = +tr.dataset.i; guardarDB(); pintarMedir(); }
-});
-$('tb-reg').addEventListener('click', function (e) {
-    var tr = e.target.closest('tr[data-id]'), a = A(); if (!tr || !a) return;
-    var rec = (a.saltos || []).filter(function (x) { return x.id === +tr.dataset.id; })[0];
-    if (rec) mostrarCurva('curva-medir', rec);
-});
-$('btn-ir-res').onclick = function () { irA('result'); };
 
-/* ---------- resultado ---------- */
-var ultimo = null;
-function calcularAtleta() {
-    var a = A(), d = datosAtleta();
-    var cs = [], ens = [], alt = [], ext = [];
-    d.cargas.forEach(function (pct, i) {
-        var arr = (validosPorCarga(a)[i] || []).map(function (x) { return x.altura; });
-        if (!arr.length) return;
-        cs.push(pct); ens.push(arr); alt.push(Math.max.apply(null, arr)); ext.push(d.peso * pct / 100);
-    });
-    if (cs.length < 3) throw new Error('Se necesitan saltos en al menos 3 cargas distintas (tienes ' + cs.length + ').');
-    var r = calcularPerfil(d.peso, d.hpo, ext, alt);
-    if (!r.valido) { var e = new Error('Perfil no válido: ' + r.motivo + '. Revisa los saltos y repite el registro.'); e.datos = r; throw e; }
-    return { d: d, cs: cs, ens: ens, alt: alt, r: r, av: controlesCalidad(cs, ens, r, d.hpo), diag: clasificarPerfil(r.ratio90) };
-}
-function tarjeta(tit, val, det, color) { return '<div class="t" style="border-left-color:' + color + '"><small>' + tit + '</small><span style="color:' + color + '">' + val + '</span><em>' + det + '</em></div>'; }
-function pintarResultado() {
-    var cont = $('card-res');
-    try { ultimo = calcularAtleta(); } catch (e) {
-        ultimo = null; cont.innerHTML = '<h2>Resultado</h2><div class="msg er">' + esc(e.message) + '</div>'; return;
-    }
-    var u = ultimo, r = u.r;
-    cont.innerHTML = '<h2>Perfil F-v · ' + esc(DB.actual) + '</h2>' +
-        '<div class="tarjetas">' +
-        tarjeta('POTENCIA MÁX. (Pmax)', fmt(r.Pmax, 1) + ' W/kg', '= F0·V0 / 4', '#DB2777') +
-        tarjeta('FUERZA MÁX. (F0)', fmt(r.F0, 1) + ' N/kg', 'óptima ' + fmt(r.F0opt, 1), '#F97316') +
-        tarjeta('VELOCIDAD MÁX. (V0)', fmt(r.V0, 2) + ' m/s', 'óptima ' + fmt(r.V0opt, 2), '#7C3AED') +
-        tarjeta('PENDIENTE (Sfv)', fmt(r.Sfv, 2), '% del óptimo: ' + fmt(r.ratio90, 0) + ' %', '#0D9488') + '</div>' +
-        '<div style="margin:10px 0"><span class="estado ' + (u.diag === 'PERFIL EQUILIBRADO' ? 'ok' : 'no') + '">' + u.diag + '</span> ' +
-        '<span class="sub"> desequilibrio F-v ' + fmt(r.fvimb, 0) + ' % · pérdida de altura ' + fmt(r.perdida, 1) + ' % · r² ' + fmt(r.r2, 2) + '</span></div>' +
-        '<canvas id="cv-fv" height="260"></canvas>' +
-        '<div class="sub" style="margin-top:4px">Puntos: mejor salto de cada carga. Línea sólida: tu perfil. Línea punteada: perfil óptimo con la misma Pmax.</div>' +
-        (u.av.length ? '<ul class="av">' + u.av.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>' : '<div class="msg ok">Sin avisos de calidad.</div>') +
-        '<div class="fila" style="margin-top:10px"><button class="b f" id="btn-guardar">Guardar en el historial</button></div><div id="msg-guardar"></div>';
-    dibujarFV(u);
-    $('btn-guardar').onclick = guardarSesion;
-}
-function dibujarFV(u) {
-    var cv = $('cv-fv'), dpr = window.devicePixelRatio || 1, w = cv.offsetWidth, h = 260;
-    cv.width = w * dpr; cv.height = h * dpr;
-    var c = cv.getContext('2d'); c.setTransform(dpr, 0, 0, dpr, 0, 0);
-    var css = getComputedStyle(document.documentElement), r = u.r;
-    var L = 44, R = 12, T = 14, B = 34;
-    var xmax = Math.max(r.V0, r.V0opt) * 1.08, ymax = Math.max(r.F0, r.F0opt) * 1.1;
-    var X = function (v) { return L + v / xmax * (w - L - R); }, Y = function (f) { return h - B - f / ymax * (h - T - B); };
-    c.font = '11px sans-serif'; c.fillStyle = css.getPropertyValue('--soft'); c.strokeStyle = css.getPropertyValue('--borde'); c.lineWidth = 1;
-    for (var i = 0; i <= 5; i++) {
-        var f = ymax * i / 5; c.beginPath(); c.moveTo(L, Y(f)); c.lineTo(w - R, Y(f)); c.stroke(); c.textAlign = 'right'; c.fillText(f.toFixed(0), L - 5, Y(f) + 4);
-        var v = xmax * i / 5; c.textAlign = 'center'; c.fillText(v.toFixed(1), X(v), h - B + 14);
-    }
-    c.textAlign = 'center'; c.fillText('Velocidad (m/s)', (L + w - R) / 2, h - 4);
-    c.save(); c.translate(11, (T + h - B) / 2); c.rotate(-Math.PI / 2); c.fillText('Fuerza (N/kg)', 0, 0); c.restore();
-    c.setLineDash([6, 5]); c.strokeStyle = '#0D9488'; c.lineWidth = 2; c.beginPath(); c.moveTo(X(0), Y(r.F0opt)); c.lineTo(X(r.V0opt), Y(0)); c.stroke(); c.setLineDash([]);
-    c.strokeStyle = '#DB2777'; c.lineWidth = 2.4; c.beginPath(); c.moveTo(X(0), Y(r.F0)); c.lineTo(X(r.V0), Y(0)); c.stroke();
-    c.fillStyle = '#7C3AED';
-    r.v.forEach(function (v, k) { c.beginPath(); c.arc(X(v), Y(r.Frel[k]), 5, 0, 7); c.fill(); });
-    c.fillStyle = css.getPropertyValue('--fg'); c.textAlign = 'left';
-    r.v.forEach(function (v, k) { c.fillText(u.cs[k] + '%', X(v) + 7, Y(r.Frel[k]) - 6); });
-}
-function guardarSesion() {
-    var a = A(), u = ultimo; if (!a || !u) return;
-    var r = u.r, hoy = new Date();
-    a.sesiones.push({
-        id: hoy.getTime(), fecha: hoy.toISOString(), peso: u.d.peso, hpo: u.d.hpo,
-        saltos: (a.saltos || []).slice(), cargas: u.cs, alturas: u.alt, Pmax: r.Pmax, F0: r.F0, V0: r.V0, Sfv: r.Sfv, ratio90: r.ratio90, fvimb: r.fvimb, r2: r.r2, diag: u.diag
-    });
-    a.saltos = []; a.activa = 0; a.ultimo = null;
-    guardarDB();
-    $('msg-guardar').innerHTML = '<div class="msg ok">Guardado con todos sus saltos (también los descartados). El registro se limpió para empezar otra sesión.</div>';
-    $('btn-guardar').disabled = true;
+function mostrarCurva(divId, rec) {
+    var div = $(divId), an = analizarRec(rec);
+    if (an.error) { div.innerHTML = '<div class="msg av">' + esc(an.error) + '</div>'; return; }
+    var mm = an.m, a = A(), peso = a ? aNumero(a.peso) : NaN;
+    var N = isFinite(peso) && peso > 0 ? ' (' + fmt(mm.picoBW * peso * G, 0) + ' N)' : '';
+    div.innerHTML = '<div class="sub" style="margin-bottom:4px">' + esc(rec.tipo || '') + ' · ' + fmt(rec.altura * 100, 1) + ' cm · ' + hora(rec.fecha) + '</div><canvas id="cv-' + divId + '" height="270"></canvas>' +
+        '<div class="leyenda"><span><i style="background:' + COLOR.desc + '"></i>Descarga</span><span><i style="background:' + COLOR.fren + '"></i>Frenado</span><span><i style="background:' + COLOR.dec + '"></i>Deceleración</span>' +
+        '<span><i style="background:' + COLOR.p1 + '"></i>Concéntrica P1</span>' + (an.t.p1p2 !== null ? '<span><i style="background:' + COLOR.p2 + '"></i>P2</span>' : '') + '<span><i style="background:' + COLOR.aterr + '"></i>Aterrizaje</span></div>' +
+        '<div class="met">' +
+        '<div>Fuerza pico<b>' + fmt(mm.picoBW, 2) + ' BW' + N + '</b></div><div>RFD máx.<b>' + fmt(mm.rfdBWs, 1) + ' BW/s</b></div>' +
+        '<div>Descarga<b>' + fmt(mm.descargaS * 1000, 0) + ' ms</b></div><div>Frenado<b>' + fmt(mm.frenadoS * 1000, 0) + ' ms</b></div>' +
+        '<div>Concéntrica<b>' + fmt(mm.concentricaS * 1000, 0) + ' ms</b></div><div>Profundidad contramov.<b>' + fmt(mm.profundidadM * 100, 0) + ' cm</b></div>' +
+        '<div>Altura (tiempo de vuelo)<b>' + fmt(mm.hVuelo * 100, 1) + ' cm</b></div><div>Altura (impulso)<b>' + fmt(mm.hImp * 100, 1) + ' cm</b></div>' +
+        '<div>Potencia pico<b>' + fmt(mm.potenciaPico, 1) + ' W/kg</b></div><div>Pico de aterrizaje<b>' + fmt(mm.picoAterrizajeBW, 1) + ' BW</b></div></div>' +
+        '<div class="sub" style="margin-top:6px">Aproximación con el acelerómetro del celular en la cintura (≈60 lecturas/s); una plataforma de fuerza mide a 1000/s. La altura por impulso debería parecerse a la del tiempo de vuelo: si difieren mucho, la señal no es confiable.</div>';
+    dibujarCurva($('cv-' + divId), an);
 }
 
 /* ---------- historial ---------- */
@@ -882,26 +677,26 @@ var selSesion = null;
 function pintarHistorial() {
     var a = A(), tb = $('tb-hist');
     $('hist-tit').textContent = a ? 'Historial · ' + DB.actual : 'Historial';
-    $('msg-hist').innerHTML = '';
-    if (!a || !a.sesiones.length) { tb.innerHTML = '<tr><td>Aún no hay sesiones guardadas.</td></tr>'; dibujarHist([]); $('btn-borrar-ses').disabled = true; return; }
-    var ses = a.sesiones, html = '<tr><th>Fecha</th><th>Pmax</th><th>F0</th><th>V0</th><th>Sfv</th><th>% ópt.</th><th>Cambio Pmax</th></tr>';
-    ses.forEach(function (s, i) {
-        var dif = i ? (s.Pmax - ses[i - 1].Pmax) / ses[i - 1].Pmax * 100 : null;
-        html += '<tr data-id="' + s.id + '" class="' + (s.id === selSesion ? 'act' : '') + '"><td>' + new Date(s.fecha).toLocaleDateString('es-CL') + '</td><td>' + fmt(s.Pmax, 1) + '</td><td>' + fmt(s.F0, 1) + '</td><td>' + fmt(s.V0, 2) +
-            '</td><td>' + fmt(s.Sfv, 2) + '</td><td>' + fmt(s.ratio90, 0) + '</td><td style="color:' + (dif === null ? 'inherit' : dif >= 0 ? '#0D9488' : '#E11D48') + '">' + (dif === null ? '—' : (dif >= 0 ? '+' : '') + fmt(dif, 1) + ' %') + '</td></tr>';
+    $('msg-hist').innerHTML = ''; $('curva-hist').innerHTML = '';
+    if (!a || !a.sesiones.length) { tb.innerHTML = '<tr><td>Aún no hay sesiones guardadas.</td></tr>'; $('det-ses').innerHTML = ''; dibujarHist([]); $('btn-borrar-ses').disabled = true; return; }
+    var ses = a.sesiones, html = '<tr><th>Fecha</th><th>Saltos</th><th>Mejor cm</th><th>Prom. cm</th><th>Cambio mejor</th></tr>', prev = null;
+    ses.forEach(function (s) {
+        var r = resumen(s.saltos) || { n: 0, mejor: NaN, prom: NaN };
+        var dif = prev !== null && isFinite(r.mejor) ? (r.mejor - prev) / prev * 100 : null;
+        html += '<tr data-id="' + s.id + '" class="' + (s.id === selSesion ? 'act' : '') + '"><td>' + fechaCorta(s.fecha) + '</td><td>' + r.n + '</td><td><b>' + fmt(r.mejor * 100, 1) + '</b></td><td>' + fmt(r.prom * 100, 1) +
+            '</td><td style="color:' + (dif === null ? 'inherit' : dif >= 0 ? '#0D9488' : '#E11D48') + '">' + (dif === null ? '—' : (dif >= 0 ? '+' : '') + fmt(dif, 1) + ' %') + '</td></tr>';
+        if (isFinite(r.mejor)) prev = r.mejor;
     });
     tb.innerHTML = html; dibujarHist(ses); $('btn-borrar-ses').disabled = selSesion === null;
-    var det = $('det-ses'), sel = ses.filter(function (x) { return x.id === selSesion; })[0];
-    if (sel && sel.saltos && sel.saltos.length) {
-        det.innerHTML = '<h2 style="margin:12px 0 6px;font-size:14px">Saltos de la sesión del ' + new Date(sel.fecha).toLocaleDateString('es-CL') + '</h2><div class="scroll"><table id="tb-det"></table></div>';
-        tablaSaltos($('tb-det'), sel.saltos, false); $('tb-det').className = 'clic';
-        $('curva-hist').innerHTML = '<div class="sub" style="margin-top:6px">Toca un salto para ver su curva fuerza-tiempo.</div>';
+    var det = $('det-ses'), sel = buscar(ses, selSesion);
+    if (sel) {
+        det.innerHTML = '<h2 style="margin:12px 0 6px;font-size:14px">Saltos de la sesión del ' + fechaCorta(sel.fecha) + '</h2><div class="scroll"><table id="tb-det" class="clic"></table></div><div class="sub" style="margin-top:6px">Toca un salto para ver su curva fuerza-tiempo.</div>';
+        filasSaltos($('tb-det'), sel.saltos, false);
         $('tb-det').addEventListener('click', function (e) {
             var tr = e.target.closest('tr[data-id]'); if (!tr) return;
-            var rec = sel.saltos.filter(function (x) { return x.id === +tr.dataset.id; })[0];
-            if (rec) mostrarCurva('curva-hist', rec);
+            var rec = buscar(sel.saltos, +tr.dataset.id); if (rec) mostrarCurva('curva-hist', rec);
         });
-    } else { $('curva-hist').innerHTML = ''; det.innerHTML = ses.length ? '<div class="sub" style="margin-top:8px">Toca una sesión para ver sus saltos.</div>' : ''; }
+    } else det.innerHTML = '<div class="sub" style="margin-top:8px">Toca una sesión para ver sus saltos.</div>';
 }
 $('tb-hist').addEventListener('click', function (e) {
     var tr = e.target.closest('tr[data-id]'); if (!tr) return;
@@ -917,59 +712,68 @@ function dibujarHist(ses) {
     var c = cv.getContext('2d'); c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, w, h);
     var css = getComputedStyle(document.documentElement);
     c.font = '12px sans-serif'; c.fillStyle = css.getPropertyValue('--tenue'); c.textAlign = 'center';
-    if (!ses.length) { c.fillText('Guarda al menos una sesión para ver la evolución', w / 2, h / 2); return; }
-    var vals = ses.map(function (s) { return s.Pmax; }), mn = Math.min.apply(null, vals), mx = Math.max.apply(null, vals);
-    if (mx - mn < 1) { mx += .5; mn -= .5; }
-    var L = 40, R = 14, T = 20, B = 24, n = ses.length;
+    var pts = ses.map(function (s) { return resumen(s.saltos); }).filter(Boolean);
+    if (!pts.length) { c.fillText('Guarda al menos una sesión para ver la evolución', w / 2, h / 2); return; }
+    var vals = pts.map(function (r) { return r.mejor * 100; }), prom = pts.map(function (r) { return r.prom * 100; });
+    var todos = vals.concat(prom), mn = Math.min.apply(null, todos), mx = Math.max.apply(null, todos);
+    if (mx - mn < 2) { mx += 1; mn -= 1; }
+    var L = 40, R = 14, T = 20, B = 24, n = pts.length;
     var X = function (i) { return n === 1 ? (L + w - R) / 2 : L + i / (n - 1) * (w - L - R); }, Y = function (v) { return h - B - (v - mn) / (mx - mn) * (h - T - B); };
     c.strokeStyle = css.getPropertyValue('--borde'); c.textAlign = 'right';
     for (var i = 0; i <= 3; i++) { var v = mn + (mx - mn) * i / 3; c.beginPath(); c.moveTo(L, Y(v)); c.lineTo(w - R, Y(v)); c.stroke(); c.fillStyle = css.getPropertyValue('--soft'); c.fillText(v.toFixed(1), L - 4, Y(v) + 4); }
-    c.fillText('Pmax (W/kg)', 78, 12);
-    c.strokeStyle = '#DB2777'; c.lineWidth = 2.2; c.beginPath(); vals.forEach(function (v, i) { if (i) c.lineTo(X(i), Y(v)); else c.moveTo(X(i), Y(v)); }); c.stroke();
-    c.textAlign = 'center';
-    vals.forEach(function (v, i) { c.fillStyle = '#DB2777'; c.beginPath(); c.arc(X(i), Y(v), 4, 0, 7); c.fill(); c.fillStyle = css.getPropertyValue('--fg'); c.fillText(v.toFixed(1), X(i), Y(v) - 9); });
+    c.textAlign = 'left'; c.fillStyle = '#DB2777'; c.fillText('● mejor salto (cm)', L + 6, 12); c.fillStyle = '#7C3AED'; c.fillText('● promedio', L + 130, 12);
+    function linea(arr, col, etiquetas) {
+        c.strokeStyle = col; c.lineWidth = 2.2; c.beginPath(); arr.forEach(function (v, k) { if (k) c.lineTo(X(k), Y(v)); else c.moveTo(X(k), Y(v)); }); c.stroke();
+        c.textAlign = 'center';
+        arr.forEach(function (v, k) { c.fillStyle = col; c.beginPath(); c.arc(X(k), Y(v), 4, 0, 7); c.fill(); if (etiquetas) { c.fillStyle = css.getPropertyValue('--fg'); c.fillText(v.toFixed(1), X(k), Y(v) - 9); } });
+    }
+    linea(prom, '#7C3AED', false); linea(vals, '#DB2777', true);
 }
+
+/* ---------- descargas ---------- */
 function descargar(nombre, filas, msgId) {
-    var csv = '﻿' + filas.map(function (f) { return f.map(function (x) { return '"' + String(x === null || x === undefined ? '' : x).replace(/"/g, '""') + '"'; }).join(';'); }).join('\r\n');
+    var csv = '\ufeff' + filas.map(function (f) { return f.map(function (x) { return '"' + String(x === null || x === undefined ? '' : x).replace(/"/g, '""') + '"'; }).join(';'); }).join('\r\n');
     var url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
     var l = document.createElement('a'); l.href = url; l.download = nombre;
     document.body.appendChild(l); l.click(); l.remove(); setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
     $(msgId).innerHTML = '<div class="msg ok">Archivo generado: ' + esc(nombre) + ' (separador «;», se abre directo en Excel).</div>';
 }
 function nombreArchivo(pref) { return pref + '_' + DB.actual.replace(/[^\w-]+/g, '_'); }
-var COLS_SALTO = ['sesion', 'fecha_hora', 'deportista', 'carga_pct', 'carga_extra_kg', 'valido', 'origen', 'tiempo_vuelo_s', 'altura_cm', 'v_despegue_m_s', 'pico_impulso_m_s2', 'pico_aterrizaje_m_s2', 'lecturas_por_s'];
+var COLS = ['sesion', 'fecha_hora', 'deportista', 'tipo', 'carga_extra_kg', 'valido', 'origen', 'tiempo_vuelo_s', 'altura_cm', 'v_despegue_m_s', 'fuerza_pico_BW', 'RFD_max_BW_s', 'descarga_ms', 'frenado_ms', 'concentrica_ms', 'profundidad_cm', 'altura_impulso_cm', 'potencia_pico_W_kg', 'pico_aterrizaje_BW', 'pico_impulso_m_s2', 'pico_aterr_m_s2', 'lecturas_por_s'];
 function filaSalto(x, sesion) {
-    return [sesion, x.fecha, DB.actual, x.pct, x.extraKg === null ? '' : x.extraKg.toFixed(1), x.valido === false ? 'no' : 'si', x.fuente || 'sensor', x.vuelo.toFixed(4), (x.altura * 100).toFixed(2),
-        x.vDespegue.toFixed(3), x.picoImpulso ? x.picoImpulso.toFixed(2) : '', x.picoAterrizaje ? x.picoAterrizaje.toFixed(2) : '', x.hz || ''];
+    var m = x.met || {}, f = function (v, d) { return v === undefined || v === null || !isFinite(v) ? '' : v.toFixed(d); };
+    return [sesion, x.fecha, DB.actual, x.tipo || '', f(x.extraKg, 1), x.valido === false ? 'no' : 'si', x.fuente || 'sensor', f(x.vuelo, 4), f(x.altura * 100, 2), f(x.vDespegue, 3),
+        f(m.picoBW, 3), f(m.rfdBWs, 1), f(m.descargaS * 1000, 0), f(m.frenadoS * 1000, 0), f(m.concentricaS * 1000, 0), f(m.profundidadM * 100, 1), f(m.hImp * 100, 2), f(m.potenciaPico, 1), f(m.picoAterrizajeBW, 2),
+        f(x.picoImpulso, 2), f(x.picoAterrizaje, 2), x.hz || ''];
 }
 $('btn-csv-ses').onclick = function () {
-    var a = A(); if (!a || !(a.saltos || []).length) { $('msg-reg').innerHTML = '<div class="msg av">Aún no hay saltos.</div>'; return; }
-    descargar(nombreArchivo('saltos_sesion') + '.csv', [COLS_SALTO].concat(a.saltos.map(function (x) { return filaSalto(x, 'en curso'); })), 'msg-reg');
+    var a = A(); if (!a || !a.saltos.length) { $('msg-reg').innerHTML = '<div class="msg av">Aún no hay saltos.</div>'; return; }
+    descargar(nombreArchivo('saltos_sesion') + '.csv', [COLS].concat(a.saltos.map(function (x) { return filaSalto(x, 'en curso'); })), 'msg-reg');
 };
+function filasRaw(saltos, sesion, filas) {
+    saltos.forEach(function (x, k) { (x.raw || []).forEach(function (p) { filas.push([sesion, k + 1, x.fecha, x.tipo || '', p[0], p[1], p[2], p[3], Math.sqrt(p[1] * p[1] + p[2] * p[2] + p[3] * p[3]).toFixed(2)]); }); });
+}
 $('btn-raw-ses').onclick = function () {
-    var a = A(), filas = [['salto_n', 'fecha_hora', 'carga_pct', 't_ms_desde_despegue', 'x_m_s2', 'y_m_s2', 'z_m_s2', 'modulo_m_s2']];
-    ((a && a.saltos) || []).forEach(function (x, k) { (x.raw || []).forEach(function (p) { filas.push([k + 1, x.fecha, x.pct, p[0], p[1], p[2], p[3], Math.sqrt(p[1] * p[1] + p[2] * p[2] + p[3] * p[3]).toFixed(2)]); }); });
+    var a = A(), filas = [['sesion', 'salto_n', 'fecha_hora', 'tipo', 't_ms_desde_despegue', 'x_m_s2', 'y_m_s2', 'z_m_s2', 'modulo_m_s2']];
+    if (a) filasRaw(a.saltos, 'en curso', filas);
     if (filas.length < 2) { $('msg-reg').innerHTML = '<div class="msg av">No hay señal guardada (solo los saltos medidos con el sensor la tienen).</div>'; return; }
     descargar(nombreArchivo('senal_sesion') + '.csv', filas, 'msg-reg');
 };
 $('btn-csv').onclick = function () {
     var a = A(); if (!a || !a.sesiones.length) { $('msg-hist').innerHTML = '<div class="msg av">No hay sesiones para descargar.</div>'; return; }
-    var filas = [['fecha', 'deportista', 'peso_kg', 'hPO_m', 'cargas_pct', 'alturas_cm', 'Pmax_W_kg', 'F0_N_kg', 'V0_m_s', 'Sfv', 'pct_optimo', 'FVimb_pct', 'r2', 'diagnostico']];
-    a.sesiones.forEach(function (s) {
-        filas.push([s.fecha, DB.actual, s.peso, s.hpo.toFixed(3), s.cargas.join('|'), s.alturas.map(function (x) { return (x * 100).toFixed(1); }).join('|'),
-            s.Pmax.toFixed(2), s.F0.toFixed(2), s.V0.toFixed(3), s.Sfv.toFixed(3), s.ratio90.toFixed(1), s.fvimb.toFixed(1), s.r2.toFixed(3), s.diag]);
-    });
-    descargar(nombreArchivo('perfil_fv') + '.csv', filas, 'msg-hist');
+    var filas = [['fecha', 'deportista', 'saltos_validos', 'mejor_altura_cm', 'altura_promedio_cm']];
+    a.sesiones.forEach(function (s) { var r = resumen(s.saltos); if (r) filas.push([s.fecha, DB.actual, r.n, (r.mejor * 100).toFixed(2), (r.prom * 100).toFixed(2)]); });
+    descargar(nombreArchivo('sesiones') + '.csv', filas, 'msg-hist');
 };
 $('btn-csv-saltos').onclick = function () {
-    var a = A(), filas = [COLS_SALTO];
-    ((a && a.sesiones) || []).forEach(function (s) { (s.saltos || []).forEach(function (x) { filas.push(filaSalto(x, s.fecha)); }); });
+    var a = A(), filas = [COLS];
+    ((a && a.sesiones) || []).forEach(function (s) { s.saltos.forEach(function (x) { filas.push(filaSalto(x, s.fecha)); }); });
     if (filas.length < 2) { $('msg-hist').innerHTML = '<div class="msg av">No hay saltos guardados.</div>'; return; }
     descargar(nombreArchivo('saltos_todos') + '.csv', filas, 'msg-hist');
 };
 
 llenarSelect(); cargarFormulario(); pintarMedir();
-window.addEventListener('resize', function () { var s = document.querySelector('section.on'); if (s && s.id === 's-hist') pintarHistorial(); if (s && s.id === 's-result' && ultimo) dibujarFV(ultimo); });
+window.addEventListener('resize', function () { var s = document.querySelector('section.on'); if (s && s.id === 's-hist') pintarHistorial(); });
 </script>
 </body>
 </html>
