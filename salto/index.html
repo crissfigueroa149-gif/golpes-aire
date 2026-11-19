@@ -168,6 +168,7 @@ ul.av{margin:6px 0 0;padding-left:18px;font-size:13px;color:var(--aviso-fg)}
       <button class="b f" id="btn-guardar-ses">Guardar sesión</button>
       <button class="b t" id="btn-csv-ses">⬇ CSV</button>
       <button class="b g" id="btn-raw-ses">⬇ Señal cruda</button>
+      <button class="b t" id="btn-recalc">↻ Recalcular alturas</button>
     </div>
     <label for="man-h">Añadir un salto a mano (altura en cm)</label>
     <div class="fila"><input id="man-h" inputmode="decimal" style="flex:1" placeholder="32,5"><button class="b t" id="btn-man">Añadir</button></div>
@@ -811,7 +812,7 @@ function mostrarCurva(divId, rec) {
         '<div>Concéntrica<b>' + fmt(mm.concentricaS * 1000, 0) + ' ms</b></div><div>Profundidad contramov.<b>' + (mm.profundidadM > 0.6 ? '— (no confiable)' : fmt(mm.profundidadM * 100, 0) + ' cm') + '</b></div>' +
         '<div>Altura (tiempo de vuelo)<b>' + fmt(mm.hVuelo * 100, 1) + ' cm</b></div><div>Altura (impulso)<b>' + fmt(mm.hImp * 100, 1) + ' cm</b></div>' +
         '<div>Potencia pico<b>' + fmt(mm.potenciaPico, 1) + ' W/kg</b></div><div>Pico de aterrizaje<b>' + fmt(mm.picoAterrizajeBW, 1) + ' BW</b></div></div>' +
-        '<div class="sub" style="margin-top:6px">Aproximación con el acelerómetro del celular en la cintura (≈60 lecturas/s); una plataforma de fuerza mide a 1000/s. La altura por impulso debería parecerse a la del tiempo de vuelo: si difieren mucho, la señal no es confiable.</div>';
+        '<div class="sub" style="margin-top:6px">Aproximación con el acelerómetro del celular (60 a 200 lecturas/s según el teléfono y la app); una plataforma de fuerza mide a 1000/s. La altura por impulso debería parecerse a la del tiempo de vuelo: si difieren mucho, la señal no es confiable.</div>';
     dibujarCurva($('cv-' + divId), an);
 }
 
@@ -901,6 +902,25 @@ $('btn-csv-ses').onclick = function () {
 function filasRaw(saltos, sesion, filas) {
     saltos.forEach(function (x, k) { (x.raw || []).forEach(function (p) { filas.push([sesion, k + 1, x.fecha, x.tipo || '', p[0], p[1], p[2], p[3], Math.sqrt(p[1] * p[1] + p[2] * p[2] + p[3] * p[3]).toFixed(2)]); }); });
 }
+$('btn-recalc').onclick = function () {
+    var a = A(); if (!a) return; var cambio = 0, sin = 0;
+    a.saltos.forEach(function (rec) {
+        if (!rec.raw || rec.raw.length < 30 || rec.fuente === 'manual') { sin++; return; }
+        var d = crearDetectorSalto({ bajo: 4.5 }), mejor = null;
+        rec.raw.forEach(function (p) {
+            var x = d.procesar(p[0] / 1000, Math.sqrt(p[1] * p[1] + p[2] * p[2] + p[3] * p[3]));
+            if (x && (!mejor || Math.abs(x.t0) < Math.abs(mejor.t0))) mejor = x;
+        });
+        if (!mejor) { sin++; return; }
+        var desp = Math.round(mejor.t0 * 1000);
+        rec.raw = rec.raw.map(function (p) { return [p[0] - desp, p[1], p[2], p[3]]; });
+        rec.vuelo = mejor.vuelo; rec.altura = mejor.altura; rec.vDespegue = G * mejor.vuelo / 2;
+        var an = analizarRec(rec); rec.met = an.error ? null : an.m;
+        cambio++;
+    });
+    guardarDB(); pintarMedir();
+    $('msg-reg').innerHTML = '<div class="msg ok">Recalculadas ' + cambio + ' alturas con el detector actual' + (sin ? ' (' + sin + ' sin señal guardada, quedan igual)' : '') + '.</div>';
+};
 $('btn-raw-ses').onclick = function () {
     var a = A(), filas = [['sesion', 'salto_n', 'fecha_hora', 'tipo', 't_ms_desde_despegue', 'x_m_s2', 'y_m_s2', 'z_m_s2', 'modulo_m_s2']];
     if (a) filasRaw(a.saltos, 'en curso', filas);
