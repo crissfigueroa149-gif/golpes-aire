@@ -19,6 +19,9 @@ import java.util.Locale;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
+import android.content.Intent;
+import android.webkit.ValueCallback;
+import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -36,6 +39,7 @@ public class MainActivity extends Activity implements SensorEventListener {
     private TextToSpeech tts;
     private boolean ttsListo = false;
     private WebView web;
+    private ValueCallback<Uri[]> selector;
     private SensorManager sm;
     private Sensor acc;
     private HandlerThread ht;
@@ -82,6 +86,20 @@ public class MainActivity extends Activity implements SensorEventListener {
                 }
             }
         });
+        web.setWebChromeClient(new WebChromeClient() {
+            @Override
+            public boolean onShowFileChooser(WebView v, ValueCallback<Uri[]> cb, FileChooserParams p) {
+                if (selector != null) selector.onReceiveValue(null);
+                selector = cb;
+                try {
+                    Intent i = new Intent(Intent.ACTION_GET_CONTENT);
+                    i.addCategory(Intent.CATEGORY_OPENABLE);
+                    i.setType("*/*");
+                    startActivityForResult(Intent.createChooser(i, "Elegir copia (.json)"), 77);
+                } catch (Exception e) { selector = null; cb.onReceiveValue(null); return false; }
+                return true;
+            }
+        });
         web.addJavascriptInterface(new Puente(), "AndroidSensor");
         tts = new TextToSpeech(this, new TextToSpeech.OnInitListener() {
             public void onInit(int st) {
@@ -124,7 +142,7 @@ public class MainActivity extends Activity implements SensorEventListener {
                 if (Build.VERSION.SDK_INT >= 29) {
                     ContentValues cv = new ContentValues();
                     cv.put(MediaStore.Downloads.DISPLAY_NAME, nombre);
-                    cv.put(MediaStore.Downloads.MIME_TYPE, "text/csv");
+                    cv.put(MediaStore.Downloads.MIME_TYPE, nombre.endsWith(".json") ? "application/json" : "text/csv");
                     cv.put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS);
                     Uri u = getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, cv);
                     OutputStream o = getContentResolver().openOutputStream(u);
@@ -170,6 +188,14 @@ public class MainActivity extends Activity implements SensorEventListener {
         }
     }
 
+    @Override
+    protected void onActivityResult(int req, int res, Intent data) {
+        super.onActivityResult(req, res, data);
+        if (req == 77 && selector != null) {
+            selector.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(res, data));
+            selector = null;
+        }
+    }
     @Override public void onAccuracyChanged(Sensor s, int a) {}
     @Override protected void onDestroy() { if (tts != null) tts.shutdown(); super.onDestroy(); }
     @Override protected void onPause() { super.onPause(); parar(); }

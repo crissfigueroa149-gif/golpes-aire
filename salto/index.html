@@ -59,6 +59,9 @@ table.clic tr[data-id]{cursor:pointer}
 .met div{background:var(--fila);border:1px solid var(--borde);border-radius:10px;padding:8px 10px;font-size:12px;color:var(--soft)}
 .met b{display:block;font-size:15px;color:var(--fg)}
 tr.sig td:first-child{font-weight:800;color:var(--fucsia)}
+.q{font-size:16px;line-height:1}
+.q-ok{color:#0D9488}.q-med{color:#F59E0B}.q-mal{color:#E11D48}.q-na{color:var(--tenue)}
+.cal-chip{display:inline-block;background:var(--fila);border:1px solid var(--borde);border-radius:999px;padding:1px 8px;font-size:12px;color:var(--soft)}
 .chip{display:inline-flex;align-items:center;gap:4px;background:var(--fila);border:1px solid var(--borde);border-radius:999px;padding:2px 8px;margin:1px;font-size:12px}
 .chip.mejor{border-color:var(--turq);color:var(--turq);font-weight:700}
 .chip b{cursor:pointer;color:var(--rojo)}
@@ -104,7 +107,7 @@ details[open]>summary::before{transform:rotate(90deg)}
 #tb-reg td,#tb-reg th{white-space:nowrap}
 #tb-reg tr[data-id]:nth-child(even) td{background:var(--fila)}
 #tb-reg tr.act td{background:var(--sel)}
-@media (max-width:480px){#tb-reg th:nth-child(3),#tb-reg td:nth-child(3),#tb-reg th:nth-child(4),#tb-reg td:nth-child(4),#tb-reg th:nth-child(9),#tb-reg td:nth-child(9){display:none}}
+@media (max-width:480px){#tb-reg th:nth-child(4),#tb-reg td:nth-child(4),#tb-reg th:nth-child(5),#tb-reg td:nth-child(5),#tb-reg th:nth-child(10),#tb-reg td:nth-child(10){display:none}}
 ul.av{margin:6px 0 0;padding-left:18px;font-size:13px;color:var(--aviso-fg)}
 </style>
 </head>
@@ -147,9 +150,24 @@ ul.av{margin:6px 0 0;padding-left:18px;font-size:13px;color:var(--aviso-fg)}
     <div class="fila" style="margin-top:10px"><button class="b f" id="btn-ir-medir">Ir a medir ▸</button></div>
     <div id="msg-datos"></div>
   </div>
+  <div class="card" id="card-cal">
+    <h2>Calibración de altura</h2>
+    <div class="sub" id="cal-estado"></div>
+    <div class="sub" style="margin-top:6px">Haz 3 o más saltos con el test y mide la altura real con otro método (test de alcance en pared, video, plataforma). Escribe el promedio real y la app calcula un factor de ajuste para este deportista.</div>
+    <label for="cal-ref">Altura real de referencia, promedio (cm)</label>
+    <div class="fila"><input id="cal-ref" inputmode="decimal" style="flex:1" placeholder="28"><button class="b t" id="btn-cal">Calibrar con el registro</button></div>
+    <div class="fila" style="margin-top:8px"><button class="b g" id="btn-cal-quitar">Quitar calibración</button></div>
+    <div id="cal-msg"></div>
+  </div>
   <div class="card">
     <h2>Datos guardados</h2>
-    <div class="sub">Todo se guarda solo en este teléfono (deportistas, saltos e historial). Descarga antes los CSV si quieres conservar una copia.</div>
+    <div class="sub">Todo se guarda solo en este teléfono (deportistas, saltos, señales e historial). Haz una copia de vez en cuando.</div>
+    <div class="fila" style="margin-top:10px">
+      <button class="b t" id="btn-exp-copia">⬇ Exportar copia</button>
+      <button class="b g" id="btn-imp-copia">⬆ Importar copia</button>
+      <input type="file" id="file-copia" accept=".json,application/json" hidden>
+    </div>
+    <div id="conf-copia"></div>
     <div class="fila" style="margin-top:10px"><button class="b g" id="btn-borrar-todo" style="color:var(--rojo);border-color:var(--rojo)">🗑 Borrar todos los datos</button></div>
     <div id="conf-todo"></div>
   </div>
@@ -209,6 +227,7 @@ ul.av{margin:6px 0 0;padding-left:18px;font-size:13px;color:var(--aviso-fg)}
     <div class="sub" id="resumen-ses" style="margin-bottom:8px"></div>
     <canvas id="cv-barras" height="150" style="margin-bottom:8px"></canvas>
     <div class="scroll"><table id="tb-reg" class="clic"></table></div>
+    <div class="leyenda" style="margin-top:8px"><span><span class="q q-ok">●</span> reposo previo y curva coherente</span><span><span class="q q-med">●</span> altura válida, fuerza orientativa</span><span><span class="q q-mal">●</span> sin fase quieta: solo vuelo</span><span><span class="q q-na">●</span> sin señal / a mano</span></div>
     <div class="fila" style="margin-top:12px">
       <button class="b f" id="btn-guardar-ses">Guardar sesión</button>
       <button class="b t" id="btn-csv-ses">⬇ CSV</button>
@@ -460,7 +479,7 @@ function llenarSelect() {
     sel.innerHTML = nombres.length ? nombres.map(function (n) { return '<option' + (n === DB.actual ? ' selected' : '') + '>' + esc(n) + '</option>'; }).join('') : '<option value="">(crea un deportista)</option>';
     $('card-datos').style.opacity = A() ? 1 : .45;
 }
-function cargarFormulario() { var a = A(); $('peso').value = a ? (a.peso || '') : ''; }
+function cargarFormulario() { var a = A(); $('peso').value = a ? (a.peso || '') : ''; pintarCalibracion(); }
 $('sel-atleta').addEventListener('change', function () { DB.actual = this.value; guardarDB(); cargarFormulario(); pintarMedir(); });
 $('btn-nuevo').onclick = function () { $('panel-nuevo').hidden = false; $('panel-borrar').hidden = true; $('inp-nuevo').value = ''; $('inp-nuevo').focus(); };
 $('btn-cancelar').onclick = function () { $('panel-nuevo').hidden = true; };
@@ -471,6 +490,62 @@ $('btn-crear').onclick = function () {
 };
 $('btn-borrar').onclick = function () { if (!A()) return; $('panel-borrar').hidden = false; $('panel-nuevo').hidden = true; };
 $('btn-borrar-no').onclick = function () { $('panel-borrar').hidden = true; };
+function descargarTexto(nombre, texto, mime, msgId) {
+    if (window.AndroidSensor && window.AndroidSensor.guardar) {
+        var r = window.AndroidSensor.guardar(nombre, texto);
+        $(msgId).innerHTML = r === 'ok' ? '<div class="msg ok">Guardado en la carpeta Descargas: ' + esc(nombre) + '</div>' : '<div class="msg av">No se pudo guardar: ' + esc(r) + '</div>';
+        return;
+    }
+    var url = URL.createObjectURL(new Blob([texto], { type: mime }));
+    var l = document.createElement('a'); l.href = url; l.download = nombre;
+    document.body.appendChild(l); l.click(); l.remove(); setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
+    $(msgId).innerHTML = '<div class="msg ok">Archivo generado: ' + esc(nombre) + '</div>';
+}
+function copiaJSON() { return JSON.stringify({ app: 'medidor-salto', version: 1, fecha: new Date().toISOString(), actual: DB.actual, atletas: DB.atletas }); }
+$('btn-exp-copia').onclick = function () {
+    var n = Object.keys(DB.atletas).length;
+    if (!n) { $('conf-copia').innerHTML = '<div class="msg av">No hay datos que exportar.</div>'; return; }
+    descargarTexto('copia_medidor_salto_' + new Date().toISOString().slice(0, 10) + '.json', copiaJSON(), 'application/json', 'conf-copia');
+};
+$('btn-imp-copia').onclick = function () { $('file-copia').value = ''; $('file-copia').click(); };
+function contar(atletas) { var s = 0, m = 0; Object.keys(atletas).forEach(function (k) { s += (atletas[k].saltos || []).length; (atletas[k].sesiones || []).forEach(function (x) { m += (x.saltos || []).length; }); }); return { a: Object.keys(atletas).length, s: s + m }; }
+function fusionar(origen) {
+    var nuevos = 0;
+    Object.keys(origen).forEach(function (k) {
+        var o = origen[k]; if (!o || typeof o !== 'object') return;
+        if (!DB.atletas[k]) { DB.atletas[k] = { nombre: o.nombre || k, peso: o.peso || '', saltos: [], sesiones: [], calib: o.calib }; }
+        var d = DB.atletas[k];
+        if (!d.peso && o.peso) d.peso = o.peso;
+        if (!d.calib && o.calib) d.calib = o.calib;
+        var idsS = {}; d.saltos.forEach(function (x) { idsS[x.id] = 1; });
+        (o.saltos || []).forEach(function (x) { if (!idsS[x.id]) { d.saltos.push(x); nuevos++; } });
+        var idsE = {}; (d.sesiones || []).forEach(function (x) { idsE[x.id] = 1; });
+        d.sesiones = d.sesiones || [];
+        (o.sesiones || []).forEach(function (x) { if (!idsE[x.id]) { d.sesiones.push(x); nuevos += (x.saltos || []).length; } });
+    });
+    return nuevos;
+}
+$('file-copia').onchange = function () {
+    var f = this.files && this.files[0]; if (!f) return;
+    var rd = new FileReader();
+    rd.onload = function () {
+        var d; try { d = JSON.parse(rd.result); } catch (e) { d = null; }
+        if (!d || d.app !== 'medidor-salto' || !d.atletas || typeof d.atletas !== 'object') { $('conf-copia').innerHTML = '<div class="msg er">Ese archivo no es una copia de esta app.</div>'; return; }
+        var c = contar(d.atletas);
+        $('conf-copia').innerHTML = '<div class="msg av">Copia del ' + esc(fechaCorta(d.fecha || '')) + ': ' + c.a + ' deportista(s) y ' + c.s + ' salto(s). «Combinar» agrega lo que falte sin tocar lo que ya tienes. «Reemplazar» borra todo lo actual y deja solo la copia.</div>' +
+            '<div class="fila" style="margin-top:6px"><button class="b t" id="imp-comb">Combinar</button><button class="b f" id="imp-reem">Reemplazar todo</button><button class="b g" id="imp-canc">Cancelar</button></div>';
+        function fin(txt) {
+            if (!DB.atletas[DB.actual]) DB.actual = (d.actual && DB.atletas[d.actual]) ? d.actual : Object.keys(DB.atletas).sort()[0] || '';
+            guardarDB(); llenarSelect(); cargarFormulario(); pintarMedir(); limpiarVistaSalto();
+            $('conf-copia').innerHTML = '<div class="msg ok">' + txt + '</div>';
+        }
+        $('imp-canc').onclick = function () { $('conf-copia').innerHTML = ''; };
+        $('imp-comb').onclick = function () { var n = fusionar(d.atletas); fin('Copia combinada: ' + n + ' salto(s) agregados.'); };
+        $('imp-reem').onclick = function () { if (test.estado !== 'idle') terminarTest(true); DB.atletas = {}; DB.actual = d.actual || ''; var n = fusionar(d.atletas); fin('Datos reemplazados por la copia: ' + n + ' salto(s).'); };
+    };
+    rd.onerror = function () { $('conf-copia').innerHTML = '<div class="msg er">No se pudo leer el archivo.</div>'; };
+    rd.readAsText(f);
+};
 function pedirConfirmacion(id, texto, ok) {
     $(id).innerHTML = '<div class="msg av">' + texto + '</div><div class="fila" style="margin-top:6px"><button class="b f" id="' + id + '-si">Sí, borrar</button><button class="b g" id="' + id + '-no">Cancelar</button></div>';
     $(id + '-si').onclick = function () { $(id).innerHTML = ''; ok(); };
@@ -619,12 +694,46 @@ function dibujarSenal() {
 
 /* ---------- saltos ---------- */
 function extraKg() { var e = aNumero($('extra').value); return isFinite(e) && e >= 0 ? e : 0; }
+function factorCal(a) { a = a || A(); return a && a.calib && a.calib.factor > 0 ? a.calib.factor : 1; }
+function aplicarFactor(a, nuevo) {
+    var viejo = factorCal(a);
+    function ajusta(rec) {
+        if (rec.fuente === 'manual' || !isFinite(rec.altura)) return;
+        var bruta = isFinite(rec.altBruta) ? rec.altBruta : rec.altura / viejo;
+        rec.altBruta = bruta; rec.altura = bruta * nuevo; rec.vDespegue = Math.sqrt(2 * G * rec.altura);
+    }
+    a.saltos.forEach(ajusta);
+    (a.sesiones || []).forEach(function (se) { (se.saltos || []).forEach(ajusta); });
+}
+function pintarCalibracion() {
+    var a = A(), el = $('cal-estado'); if (!el) return;
+    if (!a) { el.textContent = 'Crea un deportista para calibrar.'; return; }
+    el.innerHTML = a.calib ? 'Factor actual: <b>×' + fmt(a.calib.factor, 3) + '</b> (referencia ' + fmt(a.calib.ref, 1) + ' cm contra ' + fmt(a.calib.medido, 1) + ' cm medidos en ' + a.calib.n + ' salto(s), ' + fechaCorta(a.calib.fecha) + ').' : 'Sin calibrar: se muestra la altura bruta del tiempo de vuelo (factor ×1,000).';
+}
+$('btn-cal').onclick = function () {
+    var a = A(); if (!a) return;
+    var ref = aNumero($('cal-ref').value);
+    var v = a.saltos.filter(function (x) { return x.valido !== false && x.fuente !== 'manual' && isFinite(x.altura); }).map(function (x) { return isFinite(x.altBruta) ? x.altBruta : x.altura / factorCal(a); });
+    if (!isFinite(ref) || ref <= 0) { $('cal-msg').innerHTML = '<div class="msg av">Escribe la altura real de referencia en cm.</div>'; return; }
+    if (!v.length) { $('cal-msg').innerHTML = '<div class="msg av">No hay saltos con sensor en el registro actual. Haz el test primero, sin guardar la sesión.</div>'; return; }
+    var med = v.reduce(function (p, q) { return p + q; }, 0) / v.length * 100, f = ref / med;
+    if (f < 0.5 || f > 2.5) { $('cal-msg').innerHTML = '<div class="msg av">El factor sería ×' + fmt(f, 2) + ', demasiado lejos de 1: revisa la referencia o que sea el promedio de los mismos saltos.</div>'; return; }
+    a.calib = { factor: f, ref: ref, medido: med, n: v.length, fecha: new Date().toISOString() };
+    aplicarFactor(a, f); guardarDB(); pintarCalibracion(); pintarMedir();
+    $('cal-msg').innerHTML = '<div class="msg ok">Calibrado: ×' + fmt(f, 3) + (v.length < 3 ? ' (con pocos saltos el factor es poco fiable; mejor 3 o más)' : '') + '. Se aplicó a los saltos ya registrados y a los nuevos.</div>';
+};
+$('btn-cal-quitar').onclick = function () {
+    var a = A(); if (!a) return;
+    aplicarFactor(a, 1); delete a.calib; guardarDB(); pintarCalibracion(); pintarMedir();
+    $('cal-msg').innerHTML = '<div class="msg ok">Calibración quitada: vuelven las alturas brutas.</div>';
+};
 function agregarSalto(datos) {
     var a = A();
     if (!a) { $('ult-d').textContent = 'Primero crea un deportista (pestaña 1).'; return null; }
     var rec = Object.assign({ id: nuevoId(), fecha: new Date().toISOString(), tipo: $('tipo').value, extraKg: extraKg(), valido: true }, datos);
     delete rec._t0; delete rec._t1;
-    rec.vDespegue = Math.sqrt(2 * G * rec.altura);          // = g·t/2
+    if (rec.fuente !== 'manual') { rec.altBruta = rec.altura; rec.altura = rec.altura * factorCal(a); }
+    rec.vDespegue = Math.sqrt(2 * G * rec.altura);
     a.saltos.push(rec); a.ultimo = rec.id;
     guardarDB(); pintarMedir();
     return rec;
@@ -725,10 +834,11 @@ function registrarSalto(r) {
         test.pendiente = 'Ese salto no cuenta: no estabas quieto antes.';
         return;
     }
-    $('ult-h').textContent = fmt(r.altura * 100, 1) + ' cm';
+    var hCal = r.altura * factorCal();
+    $('ult-h').textContent = fmt(hCal * 100, 1) + ' cm';
     $('ult-d').textContent = 'Tiempo de vuelo ' + fmt(r.vuelo, 3) + ' s · v despegue ' + fmt(G * r.vuelo / 2, 2) + ' m/s';
-    test.pendiente = 'Salto, ' + fmt(r.altura * 100, 1) + ' centímetros.';
-    var rec = agregarSalto({ altura: r.altura, vuelo: r.vuelo, fuente: 'sensor', hz: sensor.hz || null, _t0: r.t0, _t1: r.t1 });
+    test.pendiente = 'Salto, ' + fmt(hCal * 100, 1) + ' centímetros.';
+    var rec = agregarSalto({ altura: r.altura, vuelo: r.vuelo, fuente: 'sensor', reposo: true, hz: sensor.hz || null, _t0: r.t0, _t1: r.t1 });
     if (rec) setTimeout(function () { completarSalto(rec.id, r); }, 900);
 }
 function buscar(saltos, id) { return (saltos || []).filter(function (x) { return x.id === id; })[0]; }
@@ -745,6 +855,7 @@ function completarSalto(id, r) {
     rec.picoImpulso = pi; rec.picoAterrizaje = pa; rec.raw = raw;
     var an = analizarRec(rec);
     if (!an.error) rec.met = an.m;
+    rec.cal = an.error ? { err: 1 } : an.calidad;
     guardarDB(); pintarMedir();
     if (a.ultimo === id) mostrarCurva('curva-medir', rec);
 }
@@ -764,11 +875,19 @@ $('btn-man').onclick = function () {
     agregarSalto({ altura: alt, vuelo: Math.sqrt(8 * alt / G), fuente: 'manual' }); $('man-h').value = '';
 };
 
+function calidadSalto(x) {
+    if (x.fuente === 'manual' || !x.raw || !x.raw.length) return { c: 'na', t: x.fuente === 'manual' ? 'Salto puesto a mano' : 'Sin señal guardada' };
+    if (x.cal === undefined) { var an = analizarRec(x); x.cal = an.error ? { err: 1 } : an.calidad; }
+    if (x.cal && x.cal.err) return { c: 'mal', t: 'No se encontró una fase quieta previa: la altura sale del tiempo de vuelo, sin curva fiable' };
+    if (x.reposo === false) return { c: 'mal', t: 'Sin reposo previo' };
+    if (x.cal && x.cal.ok) return { c: 'ok', t: 'Reposo previo y curva coherente con el tiempo de vuelo' };
+    return { c: 'med', t: 'Altura por tiempo de vuelo válida; la fuerza y las fases son solo orientativas' + (x.cal && isFinite(x.cal.dif) ? ' (diferencia con el impulso ' + Math.round(x.cal.dif * 100) + ' %)' : '') };
+}
 function filasSaltos(tb, saltos, conHora) {
     if (!saltos.length) { tb.innerHTML = '<tr><td>Aún no hay saltos registrados.</td></tr>'; return; }
-    var html = '<tr><th>#</th><th>' + (conHora ? 'Hora' : 'Fecha') + '</th><th>Tipo</th><th>Carga</th><th>Vuelo s</th><th>Altura cm</th><th>v desp.</th><th>F pico</th><th>Origen</th></tr>';
+    var html = '<tr><th>#</th><th title="Calidad de la señal">Cal.</th><th>' + (conHora ? 'Hora' : 'Fecha') + '</th><th>Tipo</th><th>Carga</th><th>Vuelo s</th><th>Altura cm</th><th>v desp.</th><th>F pico</th><th>Origen</th></tr>';
     saltos.forEach(function (x, k) {
-        html += '<tr data-id="' + x.id + '"' + (x.valido === false ? ' style="opacity:.5;text-decoration:line-through"' : '') + '><td>' + (k + 1) + '</td><td>' + (conHora ? hora(x.fecha) : fechaCorta(x.fecha)) + '</td><td>' + esc(x.tipo || '') + '</td><td>' +
+        html += '<tr data-id="' + x.id + '"' + (x.valido === false ? ' style="opacity:.5;text-decoration:line-through"' : '') + '><td>' + (k + 1) + '</td><td>' + (function () { var q = calidadSalto(x); return '<span class="q q-' + q.c + '" title="' + esc(q.t) + '">●</span>'; })() + '</td><td>' + (conHora ? hora(x.fecha) : fechaCorta(x.fecha)) + '</td><td>' + esc(x.tipo || '') + '</td><td>' +
             (x.extraKg ? fmt(x.extraKg, 1) + ' kg' : '—') + '</td><td>' + fmt(x.vuelo, 3) + '</td><td><b>' + fmt(x.altura * 100, 1) + '</b></td><td>' + fmt(x.vDespegue, 2) + '</td><td>' + (x.met ? fmt(x.met.picoBW, 2) : '—') + '</td><td>' + (x.fuente === 'manual' ? 'manual' : 'sensor') + '</td></tr>';
     });
     tb.innerHTML = html;
@@ -804,7 +923,8 @@ function pintarMedir() {
     if (!a) { tb.innerHTML = '<tr><td>Crea un deportista en la pestaña 1.</td></tr>'; $('resumen-ses').textContent = ''; return; }
     filasSaltos(tb, a.saltos, true); dibujarBarras(a.saltos);
     var r = resumen(a.saltos);
-    $('resumen-ses').textContent = r ? r.n + ' salto(s) válido(s) · mejor ' + fmt(r.mejor * 100, 1) + ' cm · promedio ' + fmt(r.prom * 100, 1) + ' cm' : 'Sesión en blanco.';
+    var verdes = a.saltos.filter(function (x) { return x.valido !== false && calidadSalto(x).c === 'ok'; }).length;
+    $('resumen-ses').textContent = (r ? r.n + ' salto(s) válido(s) · mejor ' + fmt(r.mejor * 100, 1) + ' cm · promedio ' + fmt(r.prom * 100, 1) + ' cm · ' + verdes + ' con curva coherente' : 'Sesión en blanco.') + (a.calib ? ' · calibrado ×' + fmt(a.calib.factor, 2) : '');
 }
 $('tb-reg').addEventListener('click', function (e) {
     var tr = e.target.closest('tr[data-id]'), a = A(); if (!tr || !a) return;
@@ -987,13 +1107,14 @@ function descargar(nombre, filas, msgId) {
     $(msgId).innerHTML = '<div class="msg ok">Archivo generado: ' + esc(nombre) + ' (separador «;», se abre directo en Excel).</div>';
 }
 function nombreArchivo(pref) { return pref + '_' + DB.actual.replace(/[^\w-]+/g, '_'); }
-var COLS = ['sesion', 'fecha_hora', 'deportista', 'tipo', 'carga_extra_kg', 'valido', 'origen', 'tiempo_vuelo_s', 'altura_cm', 'v_despegue_m_s', 'fuerza_pico_BW', 'RFD_max_BW_s', 'descarga_ms', 'frenado_ms', 'concentrica_ms', 'profundidad_cm', 'altura_impulso_cm', 'potencia_pico_W_kg', 'pico_aterrizaje_BW', 'pico_impulso_m_s2', 'pico_aterr_m_s2', 'lecturas_por_s', 'masa_kg', 'fuerza_pico_N', 'RFD_max_N_s', 'potencia_pico_W', 'impulso_neto_N_s'];
+var COLS = ['sesion', 'fecha_hora', 'deportista', 'tipo', 'carga_extra_kg', 'valido', 'origen', 'tiempo_vuelo_s', 'altura_cm', 'v_despegue_m_s', 'fuerza_pico_BW', 'RFD_max_BW_s', 'descarga_ms', 'frenado_ms', 'concentrica_ms', 'profundidad_cm', 'altura_impulso_cm', 'potencia_pico_W_kg', 'pico_aterrizaje_BW', 'pico_impulso_m_s2', 'pico_aterr_m_s2', 'lecturas_por_s', 'masa_kg', 'fuerza_pico_N', 'RFD_max_N_s', 'potencia_pico_W', 'impulso_neto_N_s', 'altura_bruta_cm', 'factor_calibracion', 'calidad'];
 function filaSalto(x, sesion) {
     var m = x.met || {}, f = function (v, d) { return v === undefined || v === null || !isFinite(v) ? '' : v.toFixed(d); };
     return [sesion, x.fecha, DB.actual, x.tipo || '', f(x.extraKg, 1), x.valido === false ? 'no' : 'si', x.fuente || 'sensor', f(x.vuelo, 4), f(x.altura * 100, 2), f(x.vDespegue, 3),
         f(m.picoBW, 3), f(m.rfdBWs, 1), f(m.descargaS * 1000, 0), f(m.frenadoS * 1000, 0), f(m.concentricaS * 1000, 0), f(m.profundidadM * 100, 1), f(m.hImp * 100, 2), f(m.potenciaPico, 1), f(m.picoAterrizajeBW, 2),
         f(x.picoImpulso, 2), f(x.picoAterrizaje, 2), x.hz || '',
-        f(masaSistema(x), 1), f(m.picoBW * masaSistema(x) * G, 0), f(m.rfdBWs * masaSistema(x) * G, 0), f(m.potenciaPico * masaSistema(x), 0), f(m.impulsoBWs * masaSistema(x) * G, 0)];
+        f(masaSistema(x), 1), f(m.picoBW * masaSistema(x) * G, 0), f(m.rfdBWs * masaSistema(x) * G, 0), f(m.potenciaPico * masaSistema(x), 0), f(m.impulsoBWs * masaSistema(x) * G, 0),
+        f((isFinite(x.altBruta) ? x.altBruta : x.altura) * 100, 2), f(x.fuente === 'manual' ? 1 : (isFinite(x.altBruta) && x.altBruta > 0 ? x.altura / x.altBruta : 1), 4), {ok: 'verde', med: 'amarillo', mal: 'rojo', na: ''}[calidadSalto(x).c]];
 }
 $('btn-csv-ses').onclick = function () {
     var a = A(); if (!a || !a.saltos.length) { $('msg-reg').innerHTML = '<div class="msg av">Aún no hay saltos.</div>'; return; }
@@ -1014,8 +1135,8 @@ $('btn-recalc').onclick = function () {
         if (!mejor) { sin++; return; }
         var desp = Math.round(mejor.t0 * 1000);
         rec.raw = rec.raw.map(function (p) { return [p[0] - desp, p[1], p[2], p[3]]; });
-        rec.vuelo = mejor.vuelo; rec.altura = mejor.altura; rec.vDespegue = G * mejor.vuelo / 2;
-        var an = analizarRec(rec); rec.met = an.error ? null : an.m;
+        rec.vuelo = mejor.vuelo; rec.altBruta = mejor.altura; rec.altura = mejor.altura * factorCal(a); rec.vDespegue = Math.sqrt(2 * G * rec.altura);
+        var an = analizarRec(rec); rec.met = an.error ? null : an.m; rec.cal = an.error ? { err: 1 } : an.calidad;
         cambio++;
     });
     guardarDB(); pintarMedir();
