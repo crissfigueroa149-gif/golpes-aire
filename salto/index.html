@@ -136,7 +136,7 @@ ul.av{margin:6px 0 0;padding-left:18px;font-size:13px;color:var(--aviso-fg)}
       <button class="b f" id="btn-test-ini">▶ Iniciar test</button>
       <button class="b t" id="btn-test-fin" disabled>■ Terminar test</button>
     </div>
-    <div class="sub" style="margin-top:6px">Al iniciar suena una cuenta regresiva: ponte el celular, quédate quieto y salta cuando termine. Los saltos se registran solo mientras el test está en curso.</div>
+    <div class="sub" style="margin-top:6px">Al iniciar suena una cuenta regresiva: ponte el celular y quédate quieto. Cuando oigas el pitido largo, espera el aviso «LISTO» (1,5 s sin moverte) y salta. Después de cada salto vuelve a quedarte quieto hasta oír el doble pitido. Los saltos se registran solo mientras el test está en curso.</div>
     <div id="test-res"></div>
   </div>
 
@@ -170,7 +170,7 @@ ul.av{margin:6px 0 0;padding-left:18px;font-size:13px;color:var(--aviso-fg)}
     </div>
     <label for="man-h">Añadir un salto a mano (altura en cm)</label>
     <div class="fila"><input id="man-h" inputmode="decimal" style="flex:1" placeholder="32,5"><button class="b t" id="btn-man">Añadir</button></div>
-    <div class="sub" style="margin-top:6px">Cada salto guarda tipo, carga, hora, tiempo de vuelo, altura, velocidad de despegue, métricas de la curva y la señal del sensor (2,5 s antes a 0,8 s después, 3 ejes). Los descartados quedan marcados, no se borran. «Guardar sesión» los pasa al historial y deja el registro en blanco.</div>
+    <div class="sub" style="margin-top:6px">Cada salto guarda tipo, carga, hora, tiempo de vuelo, altura, velocidad de despegue, métricas de la curva y la señal del sensor (4 s antes a 0,8 s después, 3 ejes). Los descartados quedan marcados, no se borran. «Guardar sesión» los pasa al historial y deja el registro en blanco.</div>
     <div id="msg-reg"></div>
   </div>
 </section>
@@ -442,7 +442,8 @@ function alMovimiento(ev) {
     var t = ev.timeStamp / 1000, m = Math.sqrt(a.x * a.x + a.y * a.y + a.z * a.z);
     sensor.n++; sensor.cuenta++;
     buf.push([t, m, a.x, a.y, a.z]);
-    while (buf.length && t - buf[0][0] > 5) buf.shift();
+    while (buf.length && t - buf[0][0] > 7) buf.shift();
+    evaluarQuieto(t);
     var r = detector.procesar(t, m);
     if (r) { buf.marcas = (buf.marcas || []).concat([r]).filter(function (x) { return t - x.t1 < 3; }); registrarSalto(r); }
 }
@@ -533,7 +534,19 @@ function agregarSalto(datos) {
     guardarDB(); pintarMedir();
     return rec;
 }
-var test = { estado: 'idle', timer: null, reloj: null, t0: 0, n0: 0 };
+var test = { estado: 'idle', timer: null, reloj: null, t0: 0, n0: 0, esperando: false };
+var qn = 0, quieto = false;
+// ¿lleva el teléfono ≥1,5 s quieto? (módulo ≈ g y casi sin variación)
+function evaluarQuieto(t) {
+    if (++qn % 10) return;
+    var i = buf.length - 1, s1 = 0, s2 = 0, n = 0;
+    while (i >= 0 && t - buf[i][0] < 1.5) { s1 += buf[i][1]; s2 += buf[i][1] * buf[i][1]; n++; i--; }
+    var q = false;
+    if (n > 30 && i >= 0 || n > 150) { var mu = s1 / n, sd = Math.sqrt(Math.max(0, s2 / n - mu * mu)); q = sd < 0.5 && Math.abs(mu - 9.81) < 1; }
+    if (q && !quieto && test.estado === 'activo' && test.esperando) { test.esperando = false; beep(700, 90); setTimeout(function () { beep(900, 120); }, 140); }
+    quieto = q;
+    if (test.estado === 'activo') $('test-est').textContent = test.esperando && !q ? 'Salto registrado · quédate quieto…' : (q ? '✔ LISTO: salta cuando quieras' : 'Quédate quieto…');
+}
 function testUI() {
     var en = test.estado;
     $('btn-test-ini').disabled = en !== 'idle'; $('btn-test-fin').disabled = en === 'idle';
@@ -564,7 +577,7 @@ function iniciarTest() {
         falta--;
         if (falta > 0) { $('test-reloj').textContent = falta; beep(660, 120); return; }
         clearInterval(test.timer);
-        detector.reiniciar(); test.estado = 'activo'; test.t0 = Date.now(); test.n0 = (A() ? A().saltos.length : 0); testUI();
+        detector.reiniciar(); test.esperando = true; test.estado = 'activo'; test.t0 = Date.now(); test.n0 = (A() ? A().saltos.length : 0); testUI();
         beep(1100, 450); try { navigator.vibrate && navigator.vibrate(200); } catch (e) {}
         $('test-est').textContent = '¡SALTA! Test en curso';
         test.reloj = setInterval(function () { $('test-reloj').textContent = fmt((Date.now() - test.t0) / 1000, 0) + ' s'; }, 250);
@@ -579,6 +592,7 @@ function registrarSalto(r) {
     $('ult-h').textContent = fmt(r.altura * 100, 1) + ' cm';
     $('ult-d').textContent = 'Tiempo de vuelo ' + fmt(r.vuelo, 3) + ' s · v despegue ' + fmt(G * r.vuelo / 2, 2) + ' m/s';
     beep(880, 90); try { navigator.vibrate && navigator.vibrate(60); } catch (e) {}
+    test.esperando = true;
     var rec = agregarSalto({ altura: r.altura, vuelo: r.vuelo, fuente: 'sensor', hz: sensor.hz || null, _t0: r.t0, _t1: r.t1 });
     if (rec) setTimeout(function () { completarSalto(rec.id, r); }, 900);
 }
@@ -591,7 +605,7 @@ function completarSalto(id, r) {
     buf.forEach(function (p) {
         if (p[0] >= r.t0 - 0.8 && p[0] <= r.t0 && p[1] > pi) pi = p[1];
         if (p[0] >= r.t1 && p[0] <= r.t1 + 0.3 && p[1] > pa) pa = p[1];
-        if (p[0] >= r.t0 - 2.5 && p[0] <= r.t1 + 0.8) raw.push([Math.round((p[0] - r.t0) * 1000), red(p[2]), red(p[3]), red(p[4])]);
+        if (p[0] >= r.t0 - 4 && p[0] <= r.t1 + 0.8) raw.push([Math.round((p[0] - r.t0) * 1000), red(p[2]), red(p[3]), red(p[4])]);
     });
     rec.picoImpulso = pi; rec.picoAterrizaje = pa; rec.raw = raw;
     var an = analizarRec(rec);
