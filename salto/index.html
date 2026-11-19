@@ -146,6 +146,12 @@ ul.av{margin:6px 0 0;padding-left:18px;font-size:13px;color:var(--aviso-fg)}
     <div class="fila" style="margin-top:10px"><button class="b f" id="btn-ir-medir">Ir a medir ▸</button></div>
     <div id="msg-datos"></div>
   </div>
+  <div class="card">
+    <h2>Datos guardados</h2>
+    <div class="sub">Todo se guarda solo en este teléfono (deportistas, saltos e historial). Descarga antes los CSV si quieres conservar una copia.</div>
+    <div class="fila" style="margin-top:10px"><button class="b g" id="btn-borrar-todo" style="color:var(--rojo);border-color:var(--rojo)">🗑 Borrar todos los datos</button></div>
+    <div id="conf-todo"></div>
+  </div>
 </section>
 
 <section id="s-medir">
@@ -208,6 +214,11 @@ ul.av{margin:6px 0 0;padding-left:18px;font-size:13px;color:var(--aviso-fg)}
       <button class="b g" id="btn-raw-ses">⬇ Señal cruda</button>
       <button class="b g" id="btn-recalc">↻ Recalcular</button>
     </div>
+    <div class="fila" style="margin-top:8px">
+      <button class="b g" id="btn-del-salto" style="color:var(--rojo)">🗑 Eliminar salto elegido</button>
+      <button class="b g" id="btn-vaciar" style="color:var(--rojo)">🗑 Vaciar registro</button>
+    </div>
+    <div id="conf-reg"></div>
     <details style="margin-top:8px"><summary>Añadir un salto a mano</summary>
       <label for="man-h">Altura en cm</label>
       <div class="fila"><input id="man-h" inputmode="decimal" style="flex:1" placeholder="32,5"><button class="b t" id="btn-man">Añadir</button></div>
@@ -459,6 +470,43 @@ $('btn-crear').onclick = function () {
 };
 $('btn-borrar').onclick = function () { if (!A()) return; $('panel-borrar').hidden = false; $('panel-nuevo').hidden = true; };
 $('btn-borrar-no').onclick = function () { $('panel-borrar').hidden = true; };
+function pedirConfirmacion(id, texto, ok) {
+    $(id).innerHTML = '<div class="msg av">' + texto + '</div><div class="fila" style="margin-top:6px"><button class="b f" id="' + id + '-si">Sí, borrar</button><button class="b g" id="' + id + '-no">Cancelar</button></div>';
+    $(id + '-si').onclick = function () { $(id).innerHTML = ''; ok(); };
+    $(id + '-no').onclick = function () { $(id).innerHTML = ''; };
+}
+function limpiarVistaSalto() {
+    $('ult-h').textContent = '— cm'; $('ult-d').textContent = 'Último salto detectado';
+    $('curva-medir').innerHTML = '<div class="sub">Haz un salto (quieto 1 s antes) o toca un salto del registro para ver su curva.</div>';
+}
+$('btn-del-salto').onclick = function () {
+    var a = A(), rec = a ? buscar(a.saltos, a.ultimo) : null;
+    if (!rec) { $('conf-reg').innerHTML = '<div class="msg av">Toca primero un salto del registro para elegirlo.</div>'; return; }
+    pedirConfirmacion('conf-reg', '¿Eliminar este salto (' + fmt(rec.altura * 100, 1) + ' cm, ' + hora(rec.fecha) + ') con su señal? No se puede deshacer.', function () {
+        a.saltos = a.saltos.filter(function (x) { return x.id !== rec.id; }); a.ultimo = null;
+        guardarDB(); pintarMedir(); limpiarVistaSalto();
+        $('msg-reg').innerHTML = '<div class="msg ok">Salto eliminado.</div>';
+    });
+};
+$('btn-vaciar').onclick = function () {
+    var a = A();
+    if (!a || !a.saltos.length) { $('conf-reg').innerHTML = '<div class="msg av">El registro ya está vacío.</div>'; return; }
+    pedirConfirmacion('conf-reg', '¿Vaciar los ' + a.saltos.length + ' salto(s) del registro actual? No se puede deshacer. El historial ya guardado no se toca.', function () {
+        a.saltos = []; a.ultimo = null; guardarDB(); pintarMedir(); limpiarVistaSalto();
+        $('msg-reg').innerHTML = '<div class="msg ok">Registro vaciado.</div>';
+    });
+};
+$('btn-borrar-todo').onclick = function () {
+    var n = Object.keys(DB.atletas).length;
+    pedirConfirmacion('conf-todo', '¿Borrar TODOS los datos de la app (' + n + ' deportista(s), sus saltos, sesiones e historial)? No se puede deshacer.', function () {
+        if (test.estado !== 'idle') terminarTest(true);
+        DB.atletas = {}; DB.actual = '';
+        try { localStorage.removeItem(CLAVE); localStorage.removeItem(CLAVE_VIEJA); } catch (e) {}
+        guardarDB(); llenarSelect(); cargarFormulario(); pintarMedir(); limpiarVistaSalto();
+        var h = document.querySelector('section.on'); if (h && h.id === 's-hist') pintarHistorial();
+        $('conf-todo').innerHTML = '<div class="msg ok">Todos los datos fueron borrados.</div>';
+    });
+};
 $('btn-borrar-si').onclick = function () {
     delete DB.atletas[DB.actual]; DB.actual = Object.keys(DB.atletas).sort()[0] || '';
     guardarDB(); $('panel-borrar').hidden = true; llenarSelect(); cargarFormulario();
