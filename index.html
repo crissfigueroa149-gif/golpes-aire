@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>Golpes al Aire</title>
+<style>
+  /* Una sola columna de instrumento: señal en vivo arriba, conteo en medio, ajustes abajo. Tema oscuro verde, como la app de golpes. */
+  :root {
+    --bg: #070907;
+    --panel: #0d110d;
+    --linea: #1e5128;
+    --texto: #c4d4bf;
+    --suave: #7f8f7b;
+    --verde: #4e9f3d;
+    --naranja: #ff8c32;
+    --rojo: #ff5959;
+    --blanco: #f2f7ef;
+    --fuente: 'Courier New', Consolas, monospace;
+    color-scheme: dark;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--bg);
+    color: var(--texto);
+    font-family: var(--fuente);
+    font-size: 14px;
+    line-height: 1.45;
+    padding-block: 20px 40px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  main { max-width: 720px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+  h1 { margin: 0; font-size: 20px; color: var(--blanco); text-wrap: balance; }
+  h2 { margin: 0 0 8px; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--verde); }
+  p { margin: 0; }
+  .sub { color: var(--suave); font-size: 13px; }
+  .panel { background: var(--panel); border: 1px solid var(--linea); border-radius: 10px; padding: 14px; min-width: 0; }
+  button {
+    font-family: inherit; font-size: 14px; font-weight: bold;
+    min-height: 44px; padding: 0 16px; border-radius: 8px; border: none; cursor: pointer;
+    background: var(--linea); color: var(--blanco);
+  }
+  button.sec { background: transparent; color: var(--verde); border: 1px solid var(--linea); }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+  button:focus-visible, input:focus-visible { outline: 2px solid var(--naranja); outline-offset: 2px; }
+  .fila { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  #estado { font-size: 13px; color: var(--suave); min-height: 1.45em; }
+  #estado.ok { color: var(--verde); }
+  #estado.alerta { color: var(--naranja); }
+  .lienzo { background: #050705; border: 1px solid var(--linea); border-radius: 6px; margin-top: 10px; }
+  #senal { display: block; width: 100%; height: 200px; }
+  .leyenda { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--suave); margin-top: 8px; }
+  .leyenda i { display: inline-block; width: 18px; height: 3px; vertical-align: middle; margin-right: 5px; }
+  .contador { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+  #golpes { font-size: 64px; font-weight: bold; line-height: 1; color: var(--blanco); font-variant-numeric: tabular-nums; }
+  .contador span { color: var(--verde); letter-spacing: 0.1em; font-size: 13px; }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; margin-bottom: 12px; }
+  .stat { border: 1px solid var(--linea); border-radius: 6px; padding: 8px 10px; min-width: 0; }
+  .stat b { display: block; font-size: 18px; color: var(--blanco); font-variant-numeric: tabular-nums; }
+  .stat small { color: var(--suave); font-size: 11px; }
+  .ajuste { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; align-items: center; margin-bottom: 12px; }
+  .ajuste label { font-weight: bold; }
+  .ajuste output { color: var(--naranja); font-variant-numeric: tabular-nums; }
+  .ajuste input[type=range] { grid-column: 1 / -1; width: 100%; accent-color: var(--verde); }
+  .ajuste small { grid-column: 1 / -1; color: var(--suave); font-size: 12px; }
+  .chk { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; }
+  #calib-msg { margin-top: 10px; font-size: 13px; color: var(--texto); min-height: 1.45em; }
+  .permisos { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 4px; font-size: 12px; }
+  .permisos li { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px dashed var(--linea); padding-bottom: 4px; }
+  .permisos li span { color: var(--suave); }
+  .permisos li b { text-align: right; color: var(--texto); }
+  .permisos .perm-ok { color: var(--verde); }
+  .permisos .perm-no { color: var(--naranja); }
+  #ayuda-permiso { margin-top: 10px; padding: 10px; border: 1px solid var(--naranja); border-radius: 6px; color: var(--texto); }
+  ol { margin: 0; padding-left: 20px; color: var(--suave); font-size: 13px; }
+  ol li + li { margin-top: 4px; }
+  @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Golpes al Aire</h1>
+    <p class="sub">Cuenta golpes lanzados al aire a partir del movimiento del brazo, con el sensor del celular.</p>
+  </header>
+
+  <section class="panel" aria-labelledby="t-senal">
+    <h2 id="t-senal">Señal en vivo</h2>
+    <div class="fila">
+      <button id="btn-sensor">Pedir permiso y activar sensor</button>
+      <span id="hz" class="sub"></span>
+    </div>
+    <p id="estado">Sensor apagado.</p>
+    <ul id="permisos" class="permisos" aria-label="Estado de permisos"></ul>
+    <p id="ayuda-permiso" hidden></p>
+    <div class="lienzo"><canvas id="senal" aria-label="Gráfico de aceleración y giro de los últimos 6 segundos"></canvas></div>
+    <div class="leyenda">
+      <span><i style="background: var(--naranja)"></i>Aceleración (m/s²)</span>
+      <span><i style="background: var(--verde)"></i>Giro (escala propia)</span>
+      <span><i style="background: var(--rojo)"></i>Umbral y golpes detectados</span>
+    </div>
+  </section>
+
+  <section class="panel" aria-labelledby="t-conteo">
+    <h2 id="t-conteo">Conteo</h2>
+    <div class="contador" aria-live="polite">
+      <div id="golpes">0</div><span>GOLPES</span>
+    </div>
+    <div class="stats">
+      <div class="stat"><b id="s-tiempo">0.0</b><small>Tiempo (s)</small></div>
+      <div class="stat"><b id="s-prom">0.00</b><small>Golpes/seg promedio</small></div>
+      <div class="stat"><b id="s-ritmo">0.0</b><small>Ritmo últimos 3 s (g/s)</small></div>
+      <div class="stat"><b id="s-int-media">0.0</b><small>Intensidad media (m/s²)</small></div>
+      <div class="stat"><b id="s-int-max">0.0</b><small>Intensidad máxima (m/s²)</small></div>
+      <div class="stat"><b id="s-giro-max">0</b><small>Giro máximo (°/s)</small></div>
+    </div>
+    <div class="fila">
+      <button id="btn-sesion" disabled>Iniciar conteo</button>
+      <button id="btn-reiniciar" class="sec" disabled>Reiniciar</button>
+    </div>
+  </section>
+
+  <section class="panel" aria-labelledby="t-ajustes">
+    <h2 id="t-ajustes">Ajustes</h2>
+    <div class="ajuste">
+      <label for="umbral">Umbral de golpe</label>
+      <output id="o-umbral" for="umbral">12 m/s²</output>
+      <input type="range" id="umbral" min="3" max="60" step="0.5" value="12">
+      <small>Aceleración mínima para contar un golpe. Más bajo cuenta golpes suaves, pero también movimientos que no lo son.</small>
+    </div>
+    <div class="ajuste">
+      <label for="refractario">Espera entre golpes</label>
+      <output id="o-refractario" for="refractario">250 ms</output>
+      <input type="range" id="refractario" min="100" max="600" step="10" value="250">
+      <small>Tiempo en que se ignora todo después de un golpe. Evita contar dos veces el rebote del mismo golpe.</small>
+    </div>
+    <label class="chk"><input type="checkbox" id="vibrar" checked> Vibrar al contar un golpe</label>
+    <div class="fila">
+      <button id="btn-calibrar" class="sec" disabled>Calibrar con 5 golpes</button>
+      <button id="btn-cancelar-calib" class="sec" hidden>Cancelar</button>
+    </div>
+    <p id="calib-msg"></p>
+  </section>
+
+  <section class="panel" aria-labelledby="t-uso">
+    <h2 id="t-uso">Cómo probarlo</h2>
+    <ol>
+      <li>Sujeta el celular al antebrazo o llévalo en la mano con que golpeas.</li>
+      <li>Activa el sensor y mueve el brazo: la línea naranja debe reaccionar.</li>
+      <li>Calibra lanzando 5 golpes al aire con una pausa entre cada uno.</li>
+      <li>Inicia el conteo y compara lo que cuenta con los golpes que das de verdad.</li>
+    </ol>
+  </section>
+</main>
+
+<script>
+(function() {
+    'use strict';
+
+    // <detector>
+    // Cuenta un golpe cuando la aceleración supera el umbral. Después ignora todo durante
+    // refractarioMs y exige que la señal baje a la mitad del umbral antes de contar otro.
+    // Durante ventanaPicoMs sigue midiendo el valor máximo de ese golpe.
+    function crearDetector(cfg) {
+        var ultimoGolpe = -1e9;
+        var armado = true;
+        var pico = null;
+        return {
+            procesar: function(t, acel, giro) {
+                var res = { golpe: false, pico: null };
+                if (pico) {
+                    if (acel > pico.acel) pico.acel = acel;
+                    if (giro > pico.giro) pico.giro = giro;
+                    if (t >= pico.hasta) { res.pico = pico; pico = null; }
+                }
+                if (!armado && acel < cfg.umbral * 0.5) armado = true;
+                if (armado && !pico && acel >= cfg.umbral && (t - ultimoGolpe) >= cfg.refractarioMs) {
+                    res.golpe = true;
+                    armado = false;
+                    ultimoGolpe = t;
+                    pico = { t: t, hasta: t + cfg.ventanaPicoMs, acel: acel, giro: giro };
+                }
+                return res;
+            }
+        };
+    }
+
+    function mediana(valores) {
+        var v = valores.slice().sort(function(a, b) { return a - b; });
+        var m = Math.floor(v.length / 2);
+        return v.length % 2 ? v[m] : (v[m - 1] + v[m]) / 2;
+    }
+    // </detector>
+
+    var $ = function(id) { return document.getElementById(id); };
+    var el = {
+        btnSensor: $('btn-sensor'), hz: $('hz'), estado: $('estado'), canvas: $('senal'),
+        permisos: $('permisos'), ayuda: $('ayuda-permiso'),
+        golpes: $('golpes'), tiempo: $('s-tiempo'), prom: $('s-prom'), ritmo: $('s-ritmo'),
+        intMedia: $('s-int-media'), intMax: $('s-int-max'), giroMax: $('s-giro-max'),
+        btnSesion: $('btn-sesion'), btnReiniciar: $('btn-reiniciar'),
+        umbral: $('umbral'), oUmbral: $('o-umbral'), refractario: $('refractario'), oRefractario: $('o-refractario'),
+        vibrar: $('vibrar'), btnCalibrar: $('btn-calibrar'), btnCancelarCalib: $('btn-cancelar-calib'), calibMsg: $('calib-msg')
+    };
+
+    // ---------- Ajustes (se recuerdan en este navegador) ----------
+    var CLAVE = 'golpesAire_ajustes_v1';
+    var cfg = { umbral: 12, refractarioMs: 250, ventanaPicoMs: 100 };
+    var vibrarActivo = true;
+    try {
+        var g = JSON.parse(localStorage.getItem(CLAVE) || 'null');
+        if (g) {
+            if (typeof g.umbral === 'number') cfg.umbral = Math.min(60, Math.max(3, g.umbral));
+            if (typeof g.refractarioMs === 'number') cfg.refractarioMs = Math.min(600, Math.max(100, g.refractarioMs));
+            if (typeof g.vibrar === 'boolean') vibrarActivo = g.vibrar;
+        }
+    } catch (e) {}
+    function guardarAjustes() {
+        try { localStorage.setItem(CLAVE, JSON.stringify({ umbral: cfg.umbral, refractarioMs: cfg.refractarioMs, vibrar: vibrarActivo })); } catch (e) {}
+    }
+    function pintarAjustes() {
+        el.umbral.value = cfg.umbral;
+        el.oUmbral.textContent = cfg.umbral + ' m/s²';
+        el.refractario.value = cfg.refractarioMs;
+        el.oRefractario.textContent = cfg.refractarioMs + ' ms';
+        el.vibrar.checked = vibrarActivo;
+    }
+
+    // ---------- Estado ----------
+    var detector = crearDetector(cfg);
+    var buf = [];            // muestras recientes {t, a, g} para el gráfico
+    var marcas = [];         // instantes de golpes detectados, para dibujarlos
+    var estGrav = { g: null };
+    var muestras = 0;
+    var recibidas = 0;
+    var estadoPermiso = 'sin pedir';
+    var sensorActivo = false;
+    var sesion = { activa: false, golpes: 0, inicio: 0, tiempos: [], picos: [], giroMax: 0 };
+    var calib = { activa: false, picos: [], umbralPrevio: 12 };
+    var timerSesion = null;
+    var wakeLock = null;
+
+    function mostrarEstado(texto, clase) { el.estado.textContent = texto; el.estado.className = clase || ''; }
+
+    // ---------- Lectura del sensor ----------
+    function aceleracionLineal(ev) {
+        // Preferimos la aceleración sin gravedad. Si el navegador no la da, restamos una gravedad estimada.
+        var a = ev.acceleration;
+        if (a && a.x !== null && a.y !== null && a.z !== null) {
+            return Math.sqrt(a.x * a.x + a.y * a.y + a.z * a.z);
+        }
+        var c = ev.accelerationIncludingGravity;
+        if (!c || c.x === null || c.y === null || c.z === null) return null;
+        if (!estGrav.g) estGrav.g = { x: c.x, y: c.y, z: c.z };
+        estGrav.g.x = 0.98 * estGrav.g.x + 0.02 * c.x;
+        estGrav.g.y = 0.98 * estGrav.g.y + 0.02 * c.y;
+        estGrav.g.z = 0.98 * estGrav.g.z + 0.02 * c.z;
+        var lx = c.x - estGrav.g.x, ly = c.y - estGrav.g.y, lz = c.z - estGrav.g.z;
+        return Math.sqrt(lx * lx + ly * ly + lz * lz);
+    }
+
+    function alMovimiento(ev) {
+        var t = performance.now();
+        var a = aceleracionLineal(ev);
+        if (a === null) return;
+        var r = ev.rotationRate;
+        var giro = r ? Math.sqrt((r.alpha || 0) * (r.alpha || 0) + (r.beta || 0) * (r.beta || 0) + (r.gamma || 0) * (r.gamma || 0)) : 0;
+        muestras++;
+        recibidas++;
+        buf.push({ t: t, a: a, g: giro });
+        while (buf.length && buf[0].t < t - 8000) buf.shift();
+
+        var res = detector.procesar(t, a, giro);
+        if (res.golpe) alGolpe(t);
+        if (res.pico) alPico(res.pico);
+    }
+
+    function alGolpe(t) {
+        marcas.push(t);
+        while (marcas.length && marcas[0] < t - 8000) marcas.shift();
+        if (calib.activa || !sesion.activa) return;
+        sesion.golpes++;
+        sesion.tiempos.push(t);
+        if (vibrarActivo && navigator.vibrate) { try { navigator.vibrate(12); } catch (e) {} }
+        pintarConteo();
+    }
+
+    function alPico(p) {
+        if (calib.activa) {
+            calib.picos.push(p.acel);
+            el.calibMsg.textContent = 'Golpes registrados: ' + calib.picos.length + ' de 5.';
+            if (calib.picos.length >= 5) terminarCalibracion();
+            return;
+        }
+        if (sesion.activa) {
+            sesion.picos.push(p.acel);
+            if (p.giro > sesion.giroMax) sesion.giroMax = p.giro;
+            pintarConteo();
+        }
+    }
+
+    // ---------- Permisos ----------
+    var enVisor = (function() { try { return window.self !== window.top; } catch (e) { return true; } })();
+    var esIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    var protocolo = (window.location && window.location.protocol) || '';
+    var esArchivo = protocolo === 'content:' || protocolo === 'file:'; // abierta desde Drive o Descargas, no desde una web
+    var estadosApi = {}; // permisos leídos con la Permissions API (Chrome)
+    var TEXTO_API = { granted: 'concedido', denied: 'denegado', prompt: 'pendiente' };
+
+    function pintarPermisos() {
+        var filas = [];
+        filas.push(['Conexión segura (https)', window.isSecureContext ? 'sí' : 'no', window.isSecureContext ? 'ok' : 'no']);
+        filas.push(['Página abierta directamente', enVisor ? 'no, dentro de un visor' : 'sí', enVisor ? 'no' : 'ok']);
+        filas.push(['Origen de la página', esArchivo ? 'archivo local (' + protocolo + ')' : (protocolo || 'desconocido'), esArchivo ? 'no' : '']);
+        var claseP = estadoPermiso === 'concedido' ? 'ok' : ((estadoPermiso === 'denegado' || estadoPermiso === 'no disponible' || estadoPermiso === 'error') ? 'no' : '');
+        filas.push(['Permiso de movimiento', estadoPermiso, claseP]);
+        Object.keys(estadosApi).forEach(function(nombre) {
+            var s = estadosApi[nombre];
+            filas.push([nombre, TEXTO_API[s] || s, s === 'granted' ? 'ok' : (s === 'denied' ? 'no' : '')]);
+        });
+        filas.push(['Lecturas del sensor', recibidas > 0 ? 'recibiendo' : 'ninguna todavía', recibidas > 0 ? 'ok' : '']);
+        el.permisos.innerHTML = '';
+        filas.forEach(function(f) {
+            var li = document.createElement('li');
+            var etiqueta = document.createElement('span');
+            etiqueta.textContent = f[0];
+            var valor = document.createElement('b');
+            valor.textContent = f[1];
+            if (f[2]) valor.className = 'perm-' + f[2];
+            li.appendChild(etiqueta);
+            li.appendChild(valor);
+            el.permisos.appendChild(li);
+        });
+    }
+
+    function leerPermisosApi() {
+        if (!navigator.permissions || !navigator.permissions.query) return;
+        [['accelerometer', 'Acelerómetro (Chrome)'], ['gyroscope', 'Giroscopio (Chrome)']].forEach(function(par) {
+            try {
+                navigator.permissions.query({ name: par[0] }).then(function(p) {
+                    estadosApi[par[1]] = p.state;
+                    p.onchange = function() { estadosApi[par[1]] = p.state; pintarPermisos(); };
+                    pintarPermisos();
+                }).catch(function() {});
+            } catch (e) {}
+        });
+    }
+
+    function mostrarAyuda(motivo) {
+        var t;
+        if (motivo === 'visor') {
+            t = 'Esta página está dentro de otro visor y el navegador no deja pedir el permiso desde ahí. Abre el archivo .html directamente en el navegador del celular.';
+        } else if (motivo === 'seguro') {
+            t = 'El navegador solo da acceso al sensor en páginas con https. Abre la página desde una dirección https.';
+        } else if (motivo === 'denegado' && esIOS) {
+            t = 'Negaste el permiso. En iPhone, cierra esta pestaña, ábrela de nuevo y toca el botón. Si no vuelve a preguntar, borra los datos de este sitio en los ajustes de Safari.';
+        } else if (motivo === 'denegado' && esArchivo) {
+            t = 'Chrome niega el sensor porque la página está abierta como archivo local (' + protocolo + ') y ahí no se pueden guardar permisos del sitio. Revisa en Chrome: Configuración, Configuración de sitios, Sensores de movimiento. Si sigue igual, abre la página desde una dirección https.';
+        } else if (motivo === 'denegado') {
+            t = 'Negaste el permiso. En Chrome toca el candado junto a la dirección, entra a los permisos del sitio y permite los sensores de movimiento.';
+        } else {
+            t = 'No llegan datos del sensor. Revisa que el navegador tenga permitidos los sensores de movimiento. En Android con Chrome no sale ningún aviso: el permiso está dado salvo que lo hayas bloqueado en los permisos del sitio.';
+        }
+        el.ayuda.textContent = t;
+        el.ayuda.hidden = false;
+    }
+
+    // ---------- Activar sensor ----------
+    function activarSensor() {
+        el.ayuda.hidden = true;
+        if (typeof DeviceMotionEvent === 'undefined') {
+            estadoPermiso = 'no disponible';
+            pintarPermisos();
+            mostrarEstado('Este navegador no tiene sensor de movimiento.', 'alerta');
+            return;
+        }
+        // En iPhone el aviso solo aparece si requestPermission se llama directamente desde el toque
+        var requiere = typeof DeviceMotionEvent.requestPermission === 'function';
+        var pedir;
+        try { pedir = requiere ? DeviceMotionEvent.requestPermission() : Promise.resolve('granted'); }
+        catch (e) { pedir = Promise.reject(e); }
+        if (requiere) mostrarEstado('Acepta el aviso del navegador para usar el sensor de movimiento.');
+        pedir.then(function(r) {
+            if (r !== 'granted') {
+                estadoPermiso = 'denegado';
+                pintarPermisos();
+                el.btnSensor.textContent = 'Volver a pedir permiso';
+                mostrarEstado('Permiso denegado.', 'alerta');
+                mostrarAyuda('denegado');
+                return;
+            }
+            estadoPermiso = requiere ? 'concedido' : 'sin aviso en este navegador';
+            pintarPermisos();
+            window.addEventListener('devicemotion', alMovimiento);
+            sensorActivo = true;
+            el.btnSensor.disabled = true;
+            el.btnSensor.textContent = 'Sensor activo';
+            el.btnSesion.disabled = false;
+            el.btnCalibrar.disabled = false;
+            mostrarEstado('Esperando datos del sensor...');
+            setTimeout(function() {
+                pintarPermisos();
+                if (recibidas === 0) {
+                    mostrarEstado('No llegan datos del sensor.', 'alerta');
+                    mostrarAyuda(enVisor ? 'visor' : (!window.isSecureContext ? 'seguro' : 'sin-datos'));
+                }
+            }, 2500);
+        }).catch(function() {
+            estadoPermiso = 'error';
+            pintarPermisos();
+            mostrarEstado('No se pudo pedir el permiso del sensor.', 'alerta');
+            mostrarAyuda(enVisor ? 'visor' : 'sin-datos');
+        });
+    }
+
+    setInterval(function() {
+        if (!sensorActivo) return;
+        el.hz.textContent = muestras + ' lecturas/seg';
+        if (muestras > 0) {
+            el.ayuda.hidden = true;
+            if (el.estado.textContent.indexOf('Esperando') === 0 || el.estado.className === 'alerta') mostrarEstado('Sensor recibiendo datos.', 'ok');
+        }
+        pintarPermisos();
+        muestras = 0;
+    }, 1000);
+
+    // ---------- Conteo ----------
+    function pintarConteo() {
+        var ahora = performance.now();
+        var transcurrido = sesion.activa ? (ahora - sesion.inicio) / 1000 : (sesion.fin ? (sesion.fin - sesion.inicio) / 1000 : 0);
+        el.golpes.textContent = sesion.golpes;
+        el.tiempo.textContent = transcurrido.toFixed(1);
+        el.prom.textContent = transcurrido > 0 ? (sesion.golpes / transcurrido).toFixed(2) : '0.00';
+        var recientes = sesion.tiempos.filter(function(t) { return ahora - t <= 3000; }).length;
+        el.ritmo.textContent = (sesion.activa ? recientes / 3 : 0).toFixed(1);
+        if (sesion.picos.length) {
+            var suma = sesion.picos.reduce(function(s, v) { return s + v; }, 0);
+            el.intMedia.textContent = (suma / sesion.picos.length).toFixed(1);
+            el.intMax.textContent = Math.max.apply(null, sesion.picos).toFixed(1);
+        } else {
+            el.intMedia.textContent = '0.0';
+            el.intMax.textContent = '0.0';
+        }
+        el.giroMax.textContent = Math.round(sesion.giroMax);
+    }
+
+    function pedirWakeLock() {
+        try { if (navigator.wakeLock) navigator.wakeLock.request('screen').then(function(w) { wakeLock = w; }).catch(function() {}); } catch (e) {}
+    }
+    function soltarWakeLock() { try { if (wakeLock) { wakeLock.release(); wakeLock = null; } } catch (e) {} }
+
+    function reiniciarSesion() {
+        sesion = { activa: false, golpes: 0, inicio: 0, fin: 0, tiempos: [], picos: [], giroMax: 0 };
+        pintarConteo();
+    }
+
+    el.btnSesion.addEventListener('click', function() {
+        if (!sesion.activa) {
+            reiniciarSesion();
+            sesion.activa = true;
+            sesion.inicio = performance.now();
+            el.btnSesion.textContent = 'Detener';
+            el.btnReiniciar.disabled = true;
+            el.btnCalibrar.disabled = true;
+            pedirWakeLock();
+            timerSesion = setInterval(pintarConteo, 200);
+        } else {
+            sesion.activa = false;
+            sesion.fin = performance.now();
+            clearInterval(timerSesion);
+            soltarWakeLock();
+            el.btnSesion.textContent = 'Iniciar conteo';
+            el.btnReiniciar.disabled = false;
+            el.btnCalibrar.disabled = false;
+            pintarConteo();
+        }
+    });
+    el.btnReiniciar.addEventListener('click', reiniciarSesion);
+
+    // ---------- Ajustes en pantalla ----------
+    el.umbral.addEventListener('input', function() {
+        cfg.umbral = parseFloat(el.umbral.value);
+        el.oUmbral.textContent = cfg.umbral + ' m/s²';
+        guardarAjustes();
+    });
+    el.refractario.addEventListener('input', function() {
+        cfg.refractarioMs = parseInt(el.refractario.value, 10);
+        el.oRefractario.textContent = cfg.refractarioMs + ' ms';
+        guardarAjustes();
+    });
+    el.vibrar.addEventListener('change', function() { vibrarActivo = el.vibrar.checked; guardarAjustes(); });
+
+    // ---------- Calibración ----------
+    function terminarCalibracion() {
+        var med = mediana(calib.picos);
+        var nuevo = Math.min(60, Math.max(3, Math.round(med * 0.5 * 2) / 2));
+        calib.activa = false;
+        cfg.umbral = nuevo;
+        pintarAjustes();
+        guardarAjustes();
+        el.btnCalibrar.hidden = false;
+        el.btnCancelarCalib.hidden = true;
+        el.btnSesion.disabled = false;
+        el.calibMsg.textContent = 'Listo. La mediana de tus golpes fue ' + med.toFixed(1) + ' m/s², así que el umbral queda en ' + nuevo + ' m/s² (la mitad). Súbelo si cuenta movimientos que no son golpes.';
+    }
+    el.btnCalibrar.addEventListener('click', function() {
+        calib = { activa: true, picos: [], umbralPrevio: cfg.umbral };
+        cfg.umbral = 5; // umbral bajo provisional para captar tus golpes
+        el.btnCalibrar.hidden = true;
+        el.btnCancelarCalib.hidden = false;
+        el.btnSesion.disabled = true;
+        el.calibMsg.textContent = 'Lanza 5 golpes al aire con una pausa entre cada uno. Golpes registrados: 0 de 5.';
+    });
+    el.btnCancelarCalib.addEventListener('click', function() {
+        calib.activa = false;
+        cfg.umbral = calib.umbralPrevio;
+        pintarAjustes();
+        el.btnCalibrar.hidden = false;
+        el.btnCancelarCalib.hidden = true;
+        el.btnSesion.disabled = false;
+        el.calibMsg.textContent = 'Calibración cancelada.';
+    });
+
+    // ---------- Gráfico de la señal (últimos 6 s) ----------
+    var css = getComputedStyle(document.documentElement);
+    function color(nombre) { return css.getPropertyValue(nombre).trim(); }
+    var COL = { linea: color('--linea'), suave: color('--suave'), verde: color('--verde'), naranja: color('--naranja'), rojo: color('--rojo') };
+    var ctx = el.canvas.getContext('2d');
+    var VENTANA_MS = 6000;
+
+    function dibujar() {
+        var w = el.canvas.clientWidth, h = el.canvas.clientHeight;
+        var dpr = window.devicePixelRatio || 1;
+        if (el.canvas.width !== Math.round(w * dpr) || el.canvas.height !== Math.round(h * dpr)) {
+            el.canvas.width = Math.round(w * dpr);
+            el.canvas.height = Math.round(h * dpr);
+        }
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.clearRect(0, 0, w, h);
+
+        var IZQ = 40, INF = 20, SUP = 8, DER = 8;
+        var ancho = w - IZQ - DER, alto = h - SUP - INF;
+        var ahora = performance.now(), t0 = ahora - VENTANA_MS;
+
+        var maxA = Math.max(10, cfg.umbral * 1.5), maxG = 100;
+        for (var i = 0; i < buf.length; i++) {
+            if (buf[i].t < t0) continue;
+            if (buf[i].a * 1.1 > maxA) maxA = buf[i].a * 1.1;
+            if (buf[i].g * 1.1 > maxG) maxG = buf[i].g * 1.1;
+        }
+        function X(t) { return IZQ + ((t - t0) / VENTANA_MS) * ancho; }
+        function YA(v) { return SUP + alto - (Math.min(v, maxA) / maxA) * alto; }
+        function YG(v) { return SUP + alto - (Math.min(v, maxG) / maxG) * alto; }
+
+        ctx.font = '11px "Courier New", Consolas, monospace';
+        ctx.lineWidth = 1;
+        ctx.textBaseline = 'middle';
+        ctx.textAlign = 'right';
+        for (var j = 0; j <= 4; j++) {
+            var v = (maxA / 4) * j, y = YA(v);
+            ctx.strokeStyle = COL.linea; ctx.globalAlpha = j === 0 ? 0.9 : 0.3;
+            ctx.beginPath(); ctx.moveTo(IZQ, y); ctx.lineTo(w - DER, y); ctx.stroke();
+            ctx.globalAlpha = 0.9; ctx.fillStyle = COL.suave;
+            ctx.fillText(v.toFixed(0), IZQ - 6, y);
+        }
+        ctx.globalAlpha = 1;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        for (var k = 0; k <= 6; k += 2) {
+            ctx.fillStyle = COL.suave;
+            ctx.fillText(k === 6 ? 'ahora' : '-' + (6 - k) + 's', IZQ + (k / 6) * ancho, h - INF + 5);
+        }
+
+        // Umbral
+        ctx.strokeStyle = COL.rojo; ctx.globalAlpha = 0.8; ctx.setLineDash([5, 4]);
+        ctx.beginPath(); ctx.moveTo(IZQ, YA(cfg.umbral)); ctx.lineTo(w - DER, YA(cfg.umbral)); ctx.stroke();
+        ctx.setLineDash([]); ctx.globalAlpha = 1;
+
+        // Golpes detectados
+        ctx.strokeStyle = COL.rojo; ctx.globalAlpha = 0.5;
+        for (var m = 0; m < marcas.length; m++) {
+            if (marcas[m] < t0) continue;
+            ctx.beginPath(); ctx.moveTo(X(marcas[m]), SUP); ctx.lineTo(X(marcas[m]), SUP + alto); ctx.stroke();
+        }
+        ctx.globalAlpha = 1;
+
+        function trazar(fY, col, ancho2, alfa) {
+            ctx.beginPath(); ctx.strokeStyle = col; ctx.lineWidth = ancho2; ctx.globalAlpha = alfa; ctx.lineJoin = 'round';
+            var primero = true;
+            for (var n = 0; n < buf.length; n++) {
+                if (buf[n].t < t0) continue;
+                var px = X(buf[n].t), py = fY(col === COL.naranja ? buf[n].a : buf[n].g);
+                if (primero) { ctx.moveTo(px, py); primero = false; } else { ctx.lineTo(px, py); }
+            }
+            ctx.stroke(); ctx.globalAlpha = 1;
+        }
+        trazar(YG, COL.verde, 1.5, 0.7);
+        trazar(YA, COL.naranja, 2, 1);
+    }
+    (function bucle() { dibujar(); requestAnimationFrame(bucle); })();
+
+    el.btnSensor.addEventListener('click', activarSensor);
+    pintarAjustes();
+    pintarConteo();
+    leerPermisosApi();
+    pintarPermisos();
+    if (enVisor) mostrarAyuda('visor');
+})();
+</script>
+</body>
+</html>
