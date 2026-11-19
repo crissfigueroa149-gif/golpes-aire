@@ -148,6 +148,17 @@ ul.av{margin:6px 0 0;padding-left:18px;font-size:13px;color:var(--aviso-fg)}
     <div class="fila"><input id="man-h" inputmode="decimal" style="flex:1" placeholder="32,5"><button class="b t" id="btn-man">Añadir</button></div>
     <div class="fila" style="margin-top:10px"><button class="b f" id="btn-ir-res">Calcular perfil ▸</button></div>
   </div>
+
+  <div class="card">
+    <h2>Registro de saltos de esta sesión</h2>
+    <div class="scroll"><table id="tb-reg"></table></div>
+    <div class="fila" style="margin-top:10px">
+      <button class="b t" id="btn-csv-ses">⬇ CSV de los saltos</button>
+      <button class="b g" id="btn-raw-ses">⬇ Señal cruda del sensor</button>
+    </div>
+    <div class="sub" style="margin-top:6px">Cada salto guarda: hora, carga, tiempo de vuelo, altura, velocidad de despegue, picos de aceleración del impulso y del aterrizaje, y la señal del sensor (1 s antes a 0,5 s después). Los descartados quedan marcados, no se borran.</div>
+    <div id="msg-reg"></div>
+  </div>
 </section>
 
 <!-- ===================== RESULTADO ===================== -->
@@ -161,8 +172,10 @@ ul.av{margin:6px 0 0;padding-left:18px;font-size:13px;color:var(--aviso-fg)}
     <h2 id="hist-tit">Historial</h2>
     <canvas id="cv-hist" height="190"></canvas>
     <div class="scroll" style="margin-top:8px"><table id="tb-hist"></table></div>
+    <div id="det-ses"></div>
     <div class="fila" style="margin-top:10px">
-      <button class="b t" id="btn-csv">⬇ Descargar CSV</button>
+      <button class="b t" id="btn-csv">⬇ CSV de sesiones</button>
+      <button class="b t" id="btn-csv-saltos">⬇ CSV de todos los saltos</button>
       <button class="b g" id="btn-borrar-ses" disabled>Borrar sesión elegida</button>
     </div>
     <div id="msg-hist"></div>
@@ -316,6 +329,18 @@ var CLAVE = 'perfilFVCelular_v1';
 var DB = { atletas: {}, actual: '' };
 try { var g = localStorage.getItem(CLAVE); if (g) DB = JSON.parse(g); } catch (e) {}
 if (!DB.atletas) DB = { atletas: {}, actual: '' };
+// migración: versión anterior guardaba solo alturas por carga
+Object.keys(DB.atletas).forEach(function (n) {
+    var a = DB.atletas[n];
+    if (!a.saltos) {
+        a.saltos = [];
+        Object.keys(a.medidas || {}).forEach(function (i) {
+            (a.medidas[i] || []).forEach(function (h) { a.saltos.push({ id: nuevoIdIni(), fecha: new Date().toISOString(), i: +i, pct: null, extraKg: null, valido: true, altura: h, vuelo: Math.sqrt(8 * h / 9.81), vDespegue: Math.sqrt(2 * 9.81 * h), fuente: 'manual' }); });
+        });
+        delete a.medidas;
+    }
+});
+function nuevoIdIni() { return Date.now() * 1000 + Math.floor(Math.random() * 1000); }
 function guardarDB() { try { localStorage.setItem(CLAVE, JSON.stringify(DB)); } catch (e) {} }
 function A() { return DB.atletas[DB.actual] || null; }
 function fmt(x, d) { return (x === null || x === undefined || !isFinite(x)) ? '—' : x.toFixed(d).replace('.', ','); }
@@ -349,7 +374,7 @@ function actualizarHpo() {
     $('hpo-txt').textContent = (isFinite(p) && isFinite(q) && p > q) ? 'hPO = ' + fmt(p - q, 3) + ' m' : '';
 }
 function nuevoAtleta(n) {
-    return { nombre: n, peso: '', cp: '', c90: '', cargas: '0, 20, 40, 60, 80', nEns: 2, medidas: {}, activa: 0, sesiones: [] };
+    return { nombre: n, peso: '', cp: '', c90: '', cargas: '0, 20, 40, 60, 80', nEns: 2, saltos: [], activa: 0, sesiones: [] };
 }
 $('sel-atleta').addEventListener('change', function () { DB.actual = this.value; guardarDB(); cargarFormulario(); pintarMedir(); });
 $('btn-nuevo').onclick = function () { $('panel-nuevo').hidden = false; $('panel-borrar').hidden = true; $('inp-nuevo').value = ''; $('inp-nuevo').focus(); };
@@ -466,54 +491,93 @@ function dibujarSenal() {
 (function bucle() { if (document.getElementById('s-medir').classList.contains('on')) dibujarSenal(); requestAnimationFrame(bucle); })();
 
 function ensayos() { var a = A(); return a ? a.nEns : 2; }
-function registrarSalto(r) {
-    var a = A();
-    $('ult-h').textContent = fmt(r.altura * 100, 1) + ' cm';
-    $('ult-d').textContent = 'Tiempo de vuelo ' + fmt(r.vuelo, 3) + ' s';
-    beep(880, 90); try { navigator.vibrate && navigator.vibrate(60); } catch (e) {}
-    if (!a) return;
-    agregarAltura(r.altura);
+function nuevoId() { return Date.now() * 1000 + Math.floor(Math.random() * 1000); }
+function validosPorCarga(a) {
+    var m = {};
+    (a.saltos || []).forEach(function (s) { if (s.valido !== false) (m[s.i] = m[s.i] || []).push(s); });
+    return m;
 }
-function agregarAltura(h) {
-    var a = A(), cargas;
-    try { cargas = datosAtleta().cargas; } catch (e) { $('ult-d').textContent = 'Completa los datos del atleta (pestaña 1) antes de medir.'; return; }
-    var i = Math.min(a.activa || 0, cargas.length - 1);
-    (a.medidas[i] = a.medidas[i] || []).push(h);
-    if (a.medidas[i].length >= a.nEns && i < cargas.length - 1) a.activa = i + 1; else a.activa = i;
-    a.ultimo = [i, a.medidas[i].length - 1];
+function registrarSalto(r) {
+    $('ult-h').textContent = fmt(r.altura * 100, 1) + ' cm';
+    $('ult-d').textContent = 'Tiempo de vuelo ' + fmt(r.vuelo, 3) + ' s · v despegue ' + fmt(G * r.vuelo / 2, 2) + ' m/s';
+    beep(880, 90); try { navigator.vibrate && navigator.vibrate(60); } catch (e) {}
+    if (!A()) return;
+    var rec = agregarSalto({ altura: r.altura, vuelo: r.vuelo, fuente: 'sensor', hz: sensor.hz || null, _t0: r.t0, _t1: r.t1 });
+    if (rec) setTimeout(function () { completarSalto(rec.id, r); }, 650);
+}
+// Con el aterrizaje ya registrado se completan los picos y la señal del sensor
+function completarSalto(id, r) {
+    var a = A(); if (!a) return;
+    var rec = (a.saltos || []).filter(function (x) { return x.id === id; })[0]; if (!rec) return;
+    var pi = 0, pa = 0, raw = [];
+    buf.forEach(function (p) {
+        if (p[0] >= r.t0 - 0.8 && p[0] <= r.t0 && p[1] > pi) pi = p[1];
+        if (p[0] >= r.t1 && p[0] <= r.t1 + 0.3 && p[1] > pa) pa = p[1];
+        if (p[0] >= r.t0 - 1.0 && p[0] <= r.t1 + 0.5) raw.push([Math.round((p[0] - r.t0) * 1000), Math.round(p[1] * 100) / 100]);
+    });
+    rec.picoImpulso = pi; rec.picoAterrizaje = pa; rec.raw = raw;
     guardarDB(); pintarMedir();
+}
+function agregarSalto(datos) {
+    var a = A(), d;
+    try { d = datosAtleta(); } catch (e) { $('ult-d').textContent = 'Completa los datos del atleta (pestaña 1) antes de medir.'; return null; }
+    a.saltos = a.saltos || [];
+    var i = Math.min(a.activa || 0, d.cargas.length - 1);
+    var rec = Object.assign({ id: nuevoId(), fecha: new Date().toISOString(), i: i, pct: d.cargas[i], extraKg: d.peso * d.cargas[i] / 100, valido: true }, datos);
+    delete rec._t0; delete rec._t1;
+    rec.vDespegue = Math.sqrt(2 * G * rec.altura);          // = g·t/2
+    a.saltos.push(rec);
+    var n = validosPorCarga(a)[i].length;
+    a.activa = (n >= a.nEns && i < d.cargas.length - 1) ? i + 1 : i;
+    a.ultimo = rec.id;
+    guardarDB(); pintarMedir();
+    return rec;
 }
 $('btn-desc').onclick = function () {
     var a = A(); if (!a || !a.ultimo) return;
-    var i = a.ultimo[0], arr = a.medidas[i] || [];
-    if (arr.length) { arr.pop(); a.activa = i; }
-    a.ultimo = null; guardarDB(); pintarMedir(); $('ult-h').textContent = '—'; $('ult-d').textContent = 'Salto descartado';
+    var rec = (a.saltos || []).filter(function (x) { return x.id === a.ultimo; })[0];
+    if (rec) { rec.valido = false; a.activa = rec.i; }
+    a.ultimo = null; guardarDB(); pintarMedir(); $('ult-h').textContent = '—'; $('ult-d').textContent = 'Salto descartado (queda en el registro)';
 };
 $('btn-man').onclick = function () {
     var h = aNumero($('man-h').value);
     if (!(h >= 3 && h <= 100)) { $('ult-d').textContent = 'Altura manual no válida (3–100 cm).'; return; }
-    agregarAltura(h / 100); $('man-h').value = '';
+    var alt = h / 100, vuelo = Math.sqrt(8 * alt / G);
+    agregarSalto({ altura: alt, vuelo: vuelo, fuente: 'manual' }); $('man-h').value = '';
 };
 function pintarMedir() {
     var a = A(), tb = $('tb-medir');
-    if (!a) { tb.innerHTML = '<tr><td>Crea un deportista en la pestaña 1.</td></tr>'; return; }
+    if (!a) { tb.innerHTML = '<tr><td>Crea un deportista en la pestaña 1.</td></tr>'; $('tb-reg').innerHTML = ''; return; }
     var d; try { d = datosAtleta(); } catch (e) { tb.innerHTML = '<tr><td>' + esc(e.message) + '</td></tr>'; return; }
     var html = '<tr><th>Carga</th><th>Extra</th><th>Saltos (cm)</th><th>Mejor</th></tr>';
-    var sig = Math.min(a.activa || 0, d.cargas.length - 1);
+    var sig = Math.min(a.activa || 0, d.cargas.length - 1), val = validosPorCarga(a);
     d.cargas.forEach(function (pct, i) {
-        var arr = a.medidas[i] || [], mejor = arr.length ? Math.max.apply(null, arr) : null;
+        var arr = val[i] || [], mejor = arr.length ? Math.max.apply(null, arr.map(function (x) { return x.altura; })) : null;
         html += '<tr data-i="' + i + '" class="' + (i === sig ? 'act sig' : '') + '"><td>' + pct + ' %</td><td>' + fmt(d.peso * pct / 100, 1) + ' kg</td><td>' +
-            arr.map(function (h, j) { return '<span class="chip' + (h === mejor ? ' mejor' : '') + '">' + fmt(h * 100, 1) + ' <b data-q="' + i + ',' + j + '">×</b></span>'; }).join('') +
+            arr.map(function (x) { return '<span class="chip' + (x.altura === mejor ? ' mejor' : '') + '">' + fmt(x.altura * 100, 1) + ' <b data-q="' + x.id + '">×</b></span>'; }).join('') +
             (arr.length < a.nEns ? '<span class="sub"> ' + (a.nEns - arr.length) + ' por hacer</span>' : '') + '</td><td>' + (mejor === null ? '—' : fmt(mejor * 100, 1)) + '</td></tr>';
     });
     tb.innerHTML = html;
     var carga = d.cargas[sig];
     $('obj-txt').textContent = 'Próximo salto: carga ' + carga + ' % PC (' + fmt(d.peso * carga / 100, 1) + ' kg extra)';
+    tablaSaltos($('tb-reg'), a.saltos || [], true);
+}
+function hora(iso) { var d = new Date(iso); return d.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', second: '2-digit' }); }
+function tablaSaltos(tb, saltos, conHora) {
+    if (!saltos.length) { tb.innerHTML = '<tr><td>Aún no hay saltos registrados.</td></tr>'; return; }
+    var html = '<tr><th>#</th><th>' + (conHora ? 'Hora' : 'Fecha') + '</th><th>Carga</th><th>Vuelo s</th><th>Altura cm</th><th>v desp. m/s</th><th>Pico imp.</th><th>Pico aterr.</th><th>Origen</th></tr>';
+    saltos.forEach(function (x, k) {
+        html += '<tr' + (x.valido === false ? ' style="opacity:.5;text-decoration:line-through"' : '') + '><td>' + (k + 1) + '</td><td>' + (conHora ? hora(x.fecha) : new Date(x.fecha).toLocaleDateString('es-CL')) + '</td><td>' + x.pct + ' %</td><td>' + fmt(x.vuelo, 3) +
+            '</td><td>' + fmt(x.altura * 100, 1) + '</td><td>' + fmt(x.vDespegue, 2) + '</td><td>' + (x.picoImpulso ? fmt(x.picoImpulso, 1) : '—') + '</td><td>' + (x.picoAterrizaje ? fmt(x.picoAterrizaje, 1) : '—') + '</td><td>' + (x.fuente === 'manual' ? 'manual' : 'sensor') + '</td></tr>';
+    });
+    tb.innerHTML = html;
 }
 $('tb-medir').addEventListener('click', function (e) {
     var a = A(); if (!a) return;
     if (e.target.dataset && e.target.dataset.q) {
-        var p = e.target.dataset.q.split(',').map(Number); a.medidas[p[0]].splice(p[1], 1); guardarDB(); pintarMedir(); return;
+        var id = +e.target.dataset.q, rec = (a.saltos || []).filter(function (x) { return x.id === id; })[0];
+        if (rec) { rec.valido = false; a.activa = rec.i; }
+        guardarDB(); pintarMedir(); return;
     }
     var tr = e.target.closest('tr[data-i]'); if (tr) { a.activa = +tr.dataset.i; guardarDB(); pintarMedir(); }
 });
@@ -525,7 +589,7 @@ function calcularAtleta() {
     var a = A(), d = datosAtleta();
     var cs = [], ens = [], alt = [], ext = [];
     d.cargas.forEach(function (pct, i) {
-        var arr = (a.medidas[i] || []).slice();
+        var arr = (validosPorCarga(a)[i] || []).map(function (x) { return x.altura; });
         if (!arr.length) return;
         cs.push(pct); ens.push(arr); alt.push(Math.max.apply(null, arr)); ext.push(d.peso * pct / 100);
     });
@@ -583,11 +647,11 @@ function guardarSesion() {
     var r = u.r, hoy = new Date();
     a.sesiones.push({
         id: hoy.getTime(), fecha: hoy.toISOString(), peso: u.d.peso, hpo: u.d.hpo,
-        cargas: u.cs, alturas: u.alt, Pmax: r.Pmax, F0: r.F0, V0: r.V0, Sfv: r.Sfv, ratio90: r.ratio90, fvimb: r.fvimb, r2: r.r2, diag: u.diag
+        saltos: (a.saltos || []).slice(), cargas: u.cs, alturas: u.alt, Pmax: r.Pmax, F0: r.F0, V0: r.V0, Sfv: r.Sfv, ratio90: r.ratio90, fvimb: r.fvimb, r2: r.r2, diag: u.diag
     });
-    a.medidas = {}; a.activa = 0; a.ultimo = null;
+    a.saltos = []; a.activa = 0; a.ultimo = null;
     guardarDB();
-    $('msg-guardar').innerHTML = '<div class="msg ok">Guardado. Los saltos de esta sesión se limpiaron para empezar otra.</div>';
+    $('msg-guardar').innerHTML = '<div class="msg ok">Guardado con todos sus saltos (también los descartados). El registro se limpió para empezar otra sesión.</div>';
     $('btn-guardar').disabled = true;
 }
 
@@ -605,6 +669,11 @@ function pintarHistorial() {
             '</td><td>' + fmt(s.Sfv, 2) + '</td><td>' + fmt(s.ratio90, 0) + '</td><td style="color:' + (dif === null ? 'inherit' : dif >= 0 ? '#0D9488' : '#E11D48') + '">' + (dif === null ? '—' : (dif >= 0 ? '+' : '') + fmt(dif, 1) + ' %') + '</td></tr>';
     });
     tb.innerHTML = html; dibujarHist(ses); $('btn-borrar-ses').disabled = selSesion === null;
+    var det = $('det-ses'), sel = ses.filter(function (x) { return x.id === selSesion; })[0];
+    if (sel && sel.saltos && sel.saltos.length) {
+        det.innerHTML = '<h2 style="margin:12px 0 6px;font-size:14px">Saltos de la sesión del ' + new Date(sel.fecha).toLocaleDateString('es-CL') + '</h2><div class="scroll"><table id="tb-det"></table></div>';
+        tablaSaltos($('tb-det'), sel.saltos, false);
+    } else det.innerHTML = ses.length ? '<div class="sub" style="margin-top:8px">Toca una sesión para ver sus saltos.</div>' : '';
 }
 $('tb-hist').addEventListener('click', function (e) {
     var tr = e.target.closest('tr[data-id]'); if (!tr) return;
@@ -632,6 +701,29 @@ function dibujarHist(ses) {
     c.textAlign = 'center';
     vals.forEach(function (v, i) { c.fillStyle = '#DB2777'; c.beginPath(); c.arc(X(i), Y(v), 4, 0, 7); c.fill(); c.fillStyle = css.getPropertyValue('--fg'); c.fillText(v.toFixed(1), X(i), Y(v) - 9); });
 }
+function descargar(nombre, filas, msgId) {
+    var csv = '﻿' + filas.map(function (f) { return f.map(function (x) { return '"' + String(x === null || x === undefined ? '' : x).replace(/"/g, '""') + '"'; }).join(';'); }).join('\r\n');
+    var url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    var l = document.createElement('a'); l.href = url; l.download = nombre;
+    document.body.appendChild(l); l.click(); l.remove(); setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
+    $(msgId).innerHTML = '<div class="msg ok">Archivo generado: ' + esc(nombre) + ' (separador «;», se abre directo en Excel).</div>';
+}
+function nombreArchivo(pref) { return pref + '_' + DB.actual.replace(/[^\w-]+/g, '_'); }
+var COLS_SALTO = ['sesion', 'fecha_hora', 'deportista', 'carga_pct', 'carga_extra_kg', 'valido', 'origen', 'tiempo_vuelo_s', 'altura_cm', 'v_despegue_m_s', 'pico_impulso_m_s2', 'pico_aterrizaje_m_s2', 'lecturas_por_s'];
+function filaSalto(x, sesion) {
+    return [sesion, x.fecha, DB.actual, x.pct, x.extraKg === null ? '' : x.extraKg.toFixed(1), x.valido === false ? 'no' : 'si', x.fuente || 'sensor', x.vuelo.toFixed(4), (x.altura * 100).toFixed(2),
+        x.vDespegue.toFixed(3), x.picoImpulso ? x.picoImpulso.toFixed(2) : '', x.picoAterrizaje ? x.picoAterrizaje.toFixed(2) : '', x.hz || ''];
+}
+$('btn-csv-ses').onclick = function () {
+    var a = A(); if (!a || !(a.saltos || []).length) { $('msg-reg').innerHTML = '<div class="msg av">Aún no hay saltos.</div>'; return; }
+    descargar(nombreArchivo('saltos_sesion') + '.csv', [COLS_SALTO].concat(a.saltos.map(function (x) { return filaSalto(x, 'en curso'); })), 'msg-reg');
+};
+$('btn-raw-ses').onclick = function () {
+    var a = A(), filas = [['salto_n', 'fecha_hora', 'carga_pct', 't_ms_desde_despegue', 'aceleracion_m_s2']];
+    ((a && a.saltos) || []).forEach(function (x, k) { (x.raw || []).forEach(function (p) { filas.push([k + 1, x.fecha, x.pct, p[0], p[1]]); }); });
+    if (filas.length < 2) { $('msg-reg').innerHTML = '<div class="msg av">No hay señal guardada (solo los saltos medidos con el sensor la tienen).</div>'; return; }
+    descargar(nombreArchivo('senal_sesion') + '.csv', filas, 'msg-reg');
+};
 $('btn-csv').onclick = function () {
     var a = A(); if (!a || !a.sesiones.length) { $('msg-hist').innerHTML = '<div class="msg av">No hay sesiones para descargar.</div>'; return; }
     var filas = [['fecha', 'deportista', 'peso_kg', 'hPO_m', 'cargas_pct', 'alturas_cm', 'Pmax_W_kg', 'F0_N_kg', 'V0_m_s', 'Sfv', 'pct_optimo', 'FVimb_pct', 'r2', 'diagnostico']];
@@ -639,11 +731,13 @@ $('btn-csv').onclick = function () {
         filas.push([s.fecha, DB.actual, s.peso, s.hpo.toFixed(3), s.cargas.join('|'), s.alturas.map(function (x) { return (x * 100).toFixed(1); }).join('|'),
             s.Pmax.toFixed(2), s.F0.toFixed(2), s.V0.toFixed(3), s.Sfv.toFixed(3), s.ratio90.toFixed(1), s.fvimb.toFixed(1), s.r2.toFixed(3), s.diag]);
     });
-    var csv = '﻿' + filas.map(function (f) { return f.map(function (x) { return '"' + String(x).replace(/"/g, '""') + '"'; }).join(';'); }).join('\r\n');
-    var url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
-    var l = document.createElement('a'); l.href = url; l.download = 'perfil_fv_' + DB.actual.replace(/[^\w-]+/g, '_') + '.csv';
-    document.body.appendChild(l); l.click(); l.remove(); setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
-    $('msg-hist').innerHTML = '<div class="msg ok">CSV generado (separador «;», se abre directo en Excel).</div>';
+    descargar(nombreArchivo('perfil_fv') + '.csv', filas, 'msg-hist');
+};
+$('btn-csv-saltos').onclick = function () {
+    var a = A(), filas = [COLS_SALTO];
+    ((a && a.sesiones) || []).forEach(function (s) { (s.saltos || []).forEach(function (x) { filas.push(filaSalto(x, s.fecha)); }); });
+    if (filas.length < 2) { $('msg-hist').innerHTML = '<div class="msg av">No hay saltos guardados.</div>'; return; }
+    descargar(nombreArchivo('saltos_todos') + '.csv', filas, 'msg-hist');
 };
 
 llenarSelect(); cargarFormulario(); pintarMedir();
