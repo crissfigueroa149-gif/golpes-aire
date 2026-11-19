@@ -9,29 +9,35 @@
   --bg:#F5F4FA;--card:#fff;--fg:#1C1633;--soft:#5D5878;--tenue:#9C97B5;--borde:#E4E1EF;
   --indigo:#231A5C;--fucsia:#DB2777;--naranja:#F97316;--turq:#0D9488;--violeta:#7C3AED;--rojo:#E11D48;
   --ok-bg:#CCFBF1;--ok-fg:#115E59;--aviso-bg:#FEF3C7;--aviso-fg:#92400E;--fila:#FAF9FE;--sel:#FCE7F3;
+  --er-bg:#FEE2E2;--er-fg:#991B1B;--sombra:0 1px 2px rgba(28,22,51,.06),0 6px 18px rgba(28,22,51,.05);--radio:16px;
 }
 @media (prefers-color-scheme:dark){:root{
   --bg:#12101F;--card:#1C1933;--fg:#EEEAFB;--soft:#B3AECB;--tenue:#7F7A99;--borde:#332F52;
   --indigo:#C9C2F2;--ok-bg:#0B3B38;--ok-fg:#7EE8DA;--aviso-bg:#3A2A0A;--aviso-fg:#FBCB77;--fila:#211E3B;--sel:#3A1630;
+  --er-bg:#3F1420;--er-fg:#FDA4AF;--sombra:none;
 }}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%;color-scheme:light dark}
+button,input,select,summary{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+body{margin:0;font-variant-numeric:tabular-nums;background:var(--bg);color:var(--fg);font:15px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   padding:0 max(14px,env(safe-area-inset-right)) 40px max(14px,env(safe-area-inset-left))}
-header{padding:14px 0 6px}
-h1{margin:0;font-size:20px;color:var(--indigo)}
+header{padding:16px 0 4px}
+h1{margin:0;font-size:19px;letter-spacing:-.01em;color:var(--indigo)}
 .sub{color:var(--soft);font-size:13px}
 .franja{height:4px;border-radius:2px;margin:8px 0 10px;background:linear-gradient(90deg,#DB2777,#F97316,#F59E0B,#0D9488,#7C3AED)}
-nav{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px}
-nav button{flex:1 0 auto;padding:10px 14px;border:1px solid var(--borde);background:var(--card);color:var(--fg);border-radius:10px;font-weight:600;font-size:14px}
+nav{display:flex;gap:6px;overflow-x:auto;padding:6px 0;position:sticky;top:0;z-index:5;background:var(--bg);scrollbar-width:none}
+nav::-webkit-scrollbar{display:none}
+nav button{flex:1 0 auto;min-height:44px;padding:10px 14px;border:1px solid var(--borde);background:var(--card);color:var(--fg);border-radius:12px;font-weight:600;font-size:14px}
 nav button.on{background:var(--fucsia);border-color:var(--fucsia);color:#fff}
 section{display:none;max-width:760px;margin:0 auto}
 section.on{display:block}
-.card{background:var(--card);border:1px solid var(--borde);border-radius:12px;padding:14px;margin:10px 0}
+.card{background:var(--card);border:1px solid var(--borde);border-radius:var(--radio);padding:16px;margin:12px 0;box-shadow:var(--sombra)}
 .card h2{margin:0 0 8px;font-size:15px;color:var(--indigo)}
 label{display:block;font-size:12px;color:var(--soft);margin:8px 0 2px}
 input,select{width:100%;padding:10px;border:1px solid var(--borde);border-radius:8px;background:var(--bg);color:var(--fg);font-size:16px}
 .fila2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-button.b{padding:11px 14px;border:0;border-radius:10px;font-weight:700;font-size:15px;background:var(--indigo);color:var(--bg);cursor:pointer}
+button.b{min-height:44px;padding:10px 16px;border:0;border-radius:12px;font-weight:700;font-size:15px;background:var(--indigo);color:var(--bg);cursor:pointer;transition:transform .08s,opacity .15s}
+button.b:active:not(:disabled){transform:scale(.97)}
 button.b.f{background:var(--fucsia);color:#fff}
 button.b.t{background:var(--turq);color:#fff}
 button.b.g{background:var(--card);color:var(--fg);border:1px solid var(--borde)}
@@ -40,17 +46,17 @@ button.b:disabled{opacity:.45}
 .msg{padding:8px 10px;border-radius:8px;font-size:13px;margin-top:8px}
 .msg.ok{background:var(--ok-bg);color:var(--ok-fg)}
 .msg.av{background:var(--aviso-bg);color:var(--aviso-fg)}
-.msg.er{background:#FEE2E2;color:#991B1B}
+.msg.er{background:var(--er-bg);color:var(--er-fg)}
 canvas{width:100%;display:block;border-radius:8px;background:var(--bg);border:1px solid var(--borde)}
 table{width:100%;border-collapse:collapse;font-size:13px}
-th,td{padding:7px 6px;text-align:center;border-bottom:1px solid var(--borde)}
+th,td{padding:8px 5px;text-align:center;border-bottom:1px solid var(--borde)}
 th{color:var(--soft);font-weight:600}
 tr.act td{background:var(--sel)}
 table.clic tr[data-id]{cursor:pointer}
 .leyenda{display:flex;flex-wrap:wrap;gap:6px 12px;font-size:12px;margin:6px 0;color:var(--soft)}
 .leyenda i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:4px;vertical-align:-1px}
-.met{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-top:8px}
-.met div{background:var(--fila);border:1px solid var(--borde);border-radius:8px;padding:6px 8px;font-size:12px;color:var(--soft)}
+.met{display:grid;grid-template-columns:repeat(auto-fit,minmax(138px,1fr));gap:8px;margin-top:10px}
+.met div{background:var(--fila);border:1px solid var(--borde);border-radius:10px;padding:8px 10px;font-size:12px;color:var(--soft)}
 .met b{display:block;font-size:15px;color:var(--fg)}
 tr.sig td:first-child{font-weight:800;color:var(--fucsia)}
 .chip{display:inline-flex;align-items:center;gap:4px;background:var(--fila);border:1px solid var(--borde);border-radius:999px;padding:2px 8px;margin:1px;font-size:12px}
@@ -65,7 +71,40 @@ tr.sig td:first-child{font-weight:800;color:var(--fucsia)}
 .scroll{overflow-x:auto}
 .estado{display:inline-block;padding:3px 9px;border-radius:999px;font-size:12px;font-weight:700;background:var(--fila);border:1px solid var(--borde)}
 .estado.ok{background:var(--ok-bg);color:var(--ok-fg)}
-.estado.no{background:#FEE2E2;color:#991B1B}
+.estado.no{background:var(--er-bg);color:var(--er-fg)}
+/* --- panel de test --- */
+.test{text-align:center;transition:background .25s,border-color .25s}
+.test .reloj{font-size:68px;font-weight:800;line-height:1;margin:6px 0 2px;color:var(--fg);letter-spacing:-.02em}
+.test .fase{font-size:15px;font-weight:600;color:var(--soft);min-height:22px}
+.test .ctrl{display:flex;gap:10px;margin-top:14px}
+.test .ctrl .b{flex:1;min-height:56px;font-size:17px}
+.test .ajustes{display:flex;gap:12px;align-items:flex-end;justify-content:center;flex-wrap:wrap;margin-top:12px;text-align:left}
+.test .ajustes label{margin:0 0 2px}
+.test .ajustes input[type=number],.test .ajustes input[inputmode]{width:84px}
+.interr{display:flex;gap:8px;align-items:center;font-size:14px;color:var(--fg);margin:0;min-height:44px}
+.interr input{width:20px;height:20px;padding:0;accent-color:var(--fucsia)}
+.test[data-fase=idle] .reloj,.ultimo .gran:empty{color:var(--tenue)}
+.test[data-fase=cuenta]{background:var(--aviso-bg);border-color:var(--naranja)}
+.test[data-fase=cuenta] .reloj,.test[data-fase=espera] .reloj{color:var(--aviso-fg)}
+.test[data-fase=espera]{border-color:var(--naranja)}
+.test[data-fase=listo]{background:var(--ok-bg);border-color:var(--turq)}
+.test[data-fase=listo] .reloj,.test[data-fase=listo] .fase{color:var(--ok-fg)}
+.test[data-fase=listo] .reloj{animation:pulso 1.1s ease-in-out infinite}
+@keyframes pulso{50%{transform:scale(1.04)}}
+@media (prefers-reduced-motion:reduce){.test[data-fase=listo] .reloj{animation:none}button.b{transition:none}}
+.ultimo{text-align:center}
+.ultimo .gran{font-size:52px;letter-spacing:-.02em}
+.ultimo .sub{margin-top:2px}
+.ultimo .fila2{margin-top:12px;text-align:left}
+.sensor-fila{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.sensor-fila .b{flex:0 0 auto}
+details>summary{cursor:pointer;min-height:36px;display:flex;align-items:center;color:var(--soft);font-size:13px;font-weight:600;list-style:none}
+details>summary::before{content:'▸';margin-right:6px;transition:transform .15s}
+details[open]>summary::before{transform:rotate(90deg)}
+#tb-reg td,#tb-reg th{white-space:nowrap}
+#tb-reg tr[data-id]:nth-child(even) td{background:var(--fila)}
+#tb-reg tr.act td{background:var(--sel)}
+@media (max-width:480px){#tb-reg th:nth-child(3),#tb-reg td:nth-child(3),#tb-reg th:nth-child(4),#tb-reg td:nth-child(4),#tb-reg th:nth-child(9),#tb-reg td:nth-child(9){display:none}}
 ul.av{margin:6px 0 0;padding-left:18px;font-size:13px;color:var(--aviso-fg)}
 </style>
 </head>
@@ -110,50 +149,47 @@ ul.av{margin:6px 0 0;padding-left:18px;font-size:13px;color:var(--aviso-fg)}
 </section>
 
 <section id="s-medir">
+  <div class="card test" id="card-test" data-fase="idle">
+    <div class="reloj" id="test-reloj">0 s</div>
+    <div class="fase" id="test-est">Test detenido</div>
+    <div class="ctrl">
+      <button class="b f" id="btn-test-ini">▶ Iniciar test</button>
+      <button class="b g" id="btn-test-fin" disabled>■ Terminar</button>
+    </div>
+    <div class="ajustes">
+      <div><label for="cuenta">Cuenta (s)</label><input id="cuenta" inputmode="numeric" value="5"></div>
+      <label class="interr"><input type="checkbox" id="voz" checked> Guiado por voz</label>
+    </div>
+    <div class="sub" style="margin-top:8px">Quédate quieto durante la cuenta y espera «Listo» antes de cada salto. Los saltos se registran solo con el test en curso.</div>
+    <div id="test-res" style="text-align:left"></div>
+  </div>
+
+  <div class="card ultimo">
+    <div class="gran" id="ult-h">— cm</div>
+    <div class="sub" id="ult-d">Último salto detectado</div>
+    <div class="fila2">
+      <div><label for="tipo">Tipo de salto</label>
+        <select id="tipo"><option>CMJ</option><option>SJ</option><option>CMJ con brazos</option><option>Otro</option></select></div>
+      <div><label for="extra">Carga extra (kg)</label><input id="extra" inputmode="decimal" value="0"></div>
+    </div>
+    <div class="fila" style="justify-content:center;margin-top:10px"><button class="b g" id="btn-desc">Descartar último</button></div>
+  </div>
+
   <div class="card">
-    <h2>Sensor de movimiento</h2>
-    <div class="fila">
+    <div class="sensor-fila">
       <button class="b f" id="btn-sensor">Activar sensor</button>
       <button class="b g" id="btn-parar">■ Detener lectura</button>
       <span class="estado" id="est-sensor">sin activar</span>
       <span class="sub" id="hz-txt"></span>
     </div>
     <div id="ayuda-sensor"></div>
-    <canvas id="cv-senal" height="150" style="margin-top:8px"></canvas>
-    <div class="sub" style="margin-top:4px">Línea de arriba: choque (impulso/aterrizaje). Línea de abajo: umbral de «caída libre». El salto se detecta cuando la señal baja de la línea de abajo.</div>
-    <details style="margin-top:6px"><summary class="sub" style="cursor:pointer">Ajuste avanzado (no hace falta tocarlo)</summary>
-    <label for="bajo">Umbral de caída libre: <b id="bajo-v">4,5</b> m/s²</label>
-    <input type="range" id="bajo" min="2" max="8" step="0.5" value="4.5">
+    <div class="msg av">Celular <b>fijo al tronco</b> (banda o cinturón, pantalla hacia afuera). <b>Quieto 1 s</b> antes de cada salto: ese reposo mide tu peso y la vertical.</div>
+    <details style="margin-top:6px"><summary>Señal en vivo y ajuste avanzado</summary>
+      <canvas id="cv-senal" height="150" style="margin-top:6px"></canvas>
+      <div class="sub" style="margin-top:4px">Línea de arriba: choque (impulso/aterrizaje). Línea de abajo: umbral de «caída libre».</div>
+      <label for="bajo">Umbral de caída libre: <b id="bajo-v">4,5</b> m/s² (no hace falta tocarlo)</label>
+      <input type="range" id="bajo" min="2" max="8" step="0.5" value="4.5">
     </details>
-    <div class="msg av" style="margin-top:8px">Pon el celular <b>fijo a la cintura</b> (cinturón o banda, pantalla hacia afuera) o en el bolsillo delantero con el pantalón ajustado. <b>Quédate quieto 1 segundo</b> antes de cada salto: el celular usa ese reposo para medir tu peso y la vertical.</div>
-  </div>
-
-  <div class="card">
-    <h2>Test</h2>
-    <div class="fila2">
-      <div><label for="cuenta">Cuenta regresiva (s)</label><input id="cuenta" inputmode="numeric" value="5"></div>
-      <div style="text-align:center"><div class="gran" id="test-reloj" style="font-size:2.2rem">—</div><div class="sub" id="test-est">Test detenido</div></div>
-    </div>
-    <label style="display:flex;gap:8px;align-items:center;margin-top:8px"><input type="checkbox" id="voz" checked style="width:auto"> Guiado por voz</label>
-    <div class="fila" style="margin-top:10px">
-      <button class="b f" id="btn-test-ini">▶ Iniciar test</button>
-      <button class="b t" id="btn-test-fin" disabled>■ Terminar test</button>
-    </div>
-    <div class="sub" style="margin-top:6px">Al iniciar suena una cuenta regresiva: ponte el celular y quédate quieto. Cuando oigas el pitido largo, espera el aviso «LISTO» (1,5 s sin moverte) y salta. Después de cada salto vuelve a quedarte quieto hasta oír el doble pitido. Los saltos se registran solo mientras el test está en curso.</div>
-    <div id="test-res"></div>
-  </div>
-
-  <div class="card">
-    <div class="fila2">
-      <div><label for="tipo">Tipo de salto</label>
-        <select id="tipo"><option>CMJ</option><option>SJ</option><option>CMJ con brazos</option><option>Otro</option></select></div>
-      <div><label for="extra">Carga extra (kg)</label><input id="extra" inputmode="decimal" value="0"></div>
-    </div>
-    <div style="text-align:center;margin-top:10px">
-      <div class="gran" id="ult-h">—</div>
-      <div class="sub" id="ult-d">Último salto detectado</div>
-      <div class="fila" style="justify-content:center;margin-top:8px"><button class="b g" id="btn-desc">Descartar último</button></div>
-    </div>
   </div>
 
   <div class="card">
@@ -163,20 +199,23 @@ ul.av{margin:6px 0 0;padding-left:18px;font-size:13px;color:var(--aviso-fg)}
 
   <div class="card">
     <h2>Registro de la sesión</h2>
-    <div class="sub" id="resumen-ses" style="margin-bottom:6px"></div>
+    <div class="sub" id="resumen-ses" style="margin-bottom:8px"></div>
     <canvas id="cv-barras" height="150" style="margin-bottom:8px"></canvas>
     <div class="scroll"><table id="tb-reg" class="clic"></table></div>
-    <div class="fila" style="margin-top:10px">
+    <div class="fila" style="margin-top:12px">
       <button class="b f" id="btn-guardar-ses">Guardar sesión</button>
       <button class="b t" id="btn-csv-ses">⬇ CSV</button>
       <button class="b g" id="btn-raw-ses">⬇ Señal cruda</button>
-      <button class="b t" id="btn-recalc">↻ Recalcular alturas</button>
+      <button class="b g" id="btn-recalc">↻ Recalcular</button>
     </div>
-    <label for="man-h">Añadir un salto a mano (altura en cm)</label>
-    <div class="fila"><input id="man-h" inputmode="decimal" style="flex:1" placeholder="32,5"><button class="b t" id="btn-man">Añadir</button></div>
-    <div class="sub" style="margin-top:6px">Cada salto guarda tipo, carga, hora, tiempo de vuelo, altura, velocidad de despegue, métricas de la curva y la señal del sensor (4 s antes a 0,8 s después, 3 ejes). Los descartados quedan marcados, no se borran. «Guardar sesión» los pasa al historial y deja el registro en blanco.</div>
+    <details style="margin-top:8px"><summary>Añadir un salto a mano</summary>
+      <label for="man-h">Altura en cm</label>
+      <div class="fila"><input id="man-h" inputmode="decimal" style="flex:1" placeholder="32,5"><button class="b t" id="btn-man">Añadir</button></div>
+    </details>
+    <div class="sub" style="margin-top:8px">Cada salto guarda tipo, carga, hora, tiempo de vuelo, altura, métricas de la curva y la señal del sensor (4 s antes a 0,8 s después, 3 ejes). Los descartados quedan marcados, no se borran. «Guardar sesión» los pasa al historial.</div>
     <div id="msg-reg"></div>
   </div>
+
 </section>
 
 <section id="s-hist">
@@ -389,7 +428,7 @@ function guardarDB() {
 function A() { return DB.atletas[DB.actual] || null; }
 function fmt(x, d) { return (x === null || x === undefined || !isFinite(x)) ? '—' : x.toFixed(d).replace('.', ','); }
 function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
-function hora(iso) { return new Date(iso).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', second: '2-digit' }); }
+function hora(iso) { return new Date(iso).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }); }
 function fechaCorta(iso) { return new Date(iso).toLocaleDateString('es-CL'); }
 function nuevoId() { return Date.now() * 1000 + Math.floor(Math.random() * 1000); }
 
@@ -570,8 +609,10 @@ function evaluarQuieto(t) {
             if (!decir('Listo. Salta.')) { beep(700, 90); setTimeout(function () { beep(900, 120); }, 140); }
         }
     }
+    if (test.estado === 'activo') fase(test.esperando ? 'espera' : 'listo');
     if (test.estado === 'activo') $('test-est').textContent = test.esperando ? (q ? 'Quieto… espera el aviso' : 'Salto registrado · quédate quieto…') : '✔ LISTO: salta cuando quieras';
 }
+function fase(f) { var c = $('card-test'); if (c) c.dataset.fase = f; }
 function testUI() {
     var en = test.estado;
     $('btn-test-ini').disabled = en !== 'idle'; $('btn-test-fin').disabled = en === 'idle';
@@ -580,7 +621,7 @@ function terminarTest(cancelado) {
     clearInterval(test.timer); clearInterval(test.reloj);
     var a = A(), antes = test.estado, dur = (Date.now() - test.t0) / 1000;
     test.estado = 'idle'; testUI();
-    $('test-reloj').textContent = '—'; $('test-est').textContent = 'Test detenido';
+    $('test-reloj').textContent = '0 s'; $('test-est').textContent = 'Test detenido'; fase('idle');
     if (antes === 'activo') {
         var r = a ? resumen(a.saltos.slice(test.n0)) : null;
         $('test-res').innerHTML = '<div class="msg ok">Test terminado' + (cancelado ? ' (se detuvo la lectura)' : '') + ': ' + fmt(dur, 0) + ' s · ' +
@@ -595,7 +636,7 @@ function iniciarTest() {
     $('test-res').innerHTML = '';
     if (!sensor.activo) activarSensor();
     sensorBeep();
-    test.estado = 'cuenta'; testUI();
+    test.estado = 'cuenta'; testUI(); fase('cuenta');
     var falta = seg;
     $('test-reloj').textContent = falta; $('test-est').textContent = 'Quédate quieto…';
     if (!decir('Prepárate. Quédate quieto.')) beep(660, 120);
@@ -603,9 +644,9 @@ function iniciarTest() {
         falta--;
         if (falta > 0) { $('test-reloj').textContent = falta; if ($('voz').checked) { if (falta <= 3) decir(String(falta)); } else beep(660, 120); return; }
         clearInterval(test.timer);
-        detector.reiniciar(); test.esperando = true; test.pendiente = null; test.ultT1 = -1e9; test.tHabl = Date.now(); test.estado = 'activo'; test.t0 = Date.now(); test.n0 = (A() ? A().saltos.length : 0); testUI();
+        detector.reiniciar(); test.esperando = true; test.pendiente = null; test.ultT1 = -1e9; test.tHabl = Date.now(); test.estado = 'activo'; fase('espera'); test.t0 = Date.now(); test.n0 = (A() ? A().saltos.length : 0); testUI();
         if (!decir('Test en curso. Espera el aviso de listo.')) beep(1100, 450); try { navigator.vibrate && navigator.vibrate(200); } catch (e) {}
-        $('test-est').textContent = '¡SALTA! Test en curso';
+        $('test-est').textContent = 'Test en curso · quédate quieto…';
         test.reloj = setInterval(function () { $('test-reloj').textContent = fmt((Date.now() - test.t0) / 1000, 0) + ' s'; }, 250);
         $('test-reloj').textContent = '0 s';
     }, 1000);
@@ -665,7 +706,7 @@ function analizarRec(rec) {
 $('btn-desc').onclick = function () {
     var a = A(); if (!a || !a.ultimo) return;
     var rec = buscar(a.saltos, a.ultimo); if (rec) rec.valido = false;
-    a.ultimo = null; guardarDB(); pintarMedir(); $('ult-h').textContent = '—'; $('ult-d').textContent = 'Salto descartado (queda en el registro)';
+    a.ultimo = null; guardarDB(); pintarMedir(); $('ult-h').textContent = '— cm'; $('ult-d').textContent = 'Salto descartado (queda en el registro)';
 };
 $('btn-man').onclick = function () {
     var h = aNumero($('man-h').value);
@@ -676,7 +717,7 @@ $('btn-man').onclick = function () {
 
 function filasSaltos(tb, saltos, conHora) {
     if (!saltos.length) { tb.innerHTML = '<tr><td>Aún no hay saltos registrados.</td></tr>'; return; }
-    var html = '<tr><th>#</th><th>' + (conHora ? 'Hora' : 'Fecha') + '</th><th>Tipo</th><th>Carga</th><th>Vuelo s</th><th>Altura cm</th><th>v desp.</th><th>F pico BW</th><th>Origen</th></tr>';
+    var html = '<tr><th>#</th><th>' + (conHora ? 'Hora' : 'Fecha') + '</th><th>Tipo</th><th>Carga</th><th>Vuelo s</th><th>Altura cm</th><th>v desp.</th><th>F pico</th><th>Origen</th></tr>';
     saltos.forEach(function (x, k) {
         html += '<tr data-id="' + x.id + '"' + (x.valido === false ? ' style="opacity:.5;text-decoration:line-through"' : '') + '><td>' + (k + 1) + '</td><td>' + (conHora ? hora(x.fecha) : fechaCorta(x.fecha)) + '</td><td>' + esc(x.tipo || '') + '</td><td>' +
             (x.extraKg ? fmt(x.extraKg, 1) + ' kg' : '—') + '</td><td>' + fmt(x.vuelo, 3) + '</td><td><b>' + fmt(x.altura * 100, 1) + '</b></td><td>' + fmt(x.vDespegue, 2) + '</td><td>' + (x.met ? fmt(x.met.picoBW, 2) : '—') + '</td><td>' + (x.fuente === 'manual' ? 'manual' : 'sensor') + '</td></tr>';
@@ -726,7 +767,7 @@ $('btn-guardar-ses').onclick = function () {
     a.sesiones.push({ id: nuevoId(), fecha: new Date().toISOString(), saltos: a.saltos.slice() });
     a.saltos = []; a.ultimo = null; guardarDB(); pintarMedir();
     $('curva-medir').innerHTML = '<div class="sub">Sesión guardada. Haz un salto o toca uno del registro para ver su curva.</div>';
-    $('ult-h').textContent = '—'; $('ult-d').textContent = 'Último salto detectado';
+    $('ult-h').textContent = '— cm'; $('ult-d').textContent = 'Último salto detectado';
     $('msg-reg').innerHTML = '<div class="msg ok">Sesión guardada con todos sus saltos. Míralos en la pestaña Historial.</div>';
 };
 
