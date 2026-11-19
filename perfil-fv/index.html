@@ -1,0 +1,653 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Perfil F-V con celular</title>
+<style>
+:root{
+  --bg:#F5F4FA;--card:#fff;--fg:#1C1633;--soft:#5D5878;--tenue:#9C97B5;--borde:#E4E1EF;
+  --indigo:#231A5C;--fucsia:#DB2777;--naranja:#F97316;--turq:#0D9488;--violeta:#7C3AED;--rojo:#E11D48;
+  --ok-bg:#CCFBF1;--ok-fg:#115E59;--aviso-bg:#FEF3C7;--aviso-fg:#92400E;--fila:#FAF9FE;--sel:#FCE7F3;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#12101F;--card:#1C1933;--fg:#EEEAFB;--soft:#B3AECB;--tenue:#7F7A99;--borde:#332F52;
+  --indigo:#C9C2F2;--ok-bg:#0B3B38;--ok-fg:#7EE8DA;--aviso-bg:#3A2A0A;--aviso-fg:#FBCB77;--fila:#211E3B;--sel:#3A1630;
+}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  padding:0 max(14px,env(safe-area-inset-right)) 40px max(14px,env(safe-area-inset-left))}
+header{padding:14px 0 6px}
+h1{margin:0;font-size:20px;color:var(--indigo)}
+.sub{color:var(--soft);font-size:13px}
+.franja{height:4px;border-radius:2px;margin:8px 0 10px;background:linear-gradient(90deg,#DB2777,#F97316,#F59E0B,#0D9488,#7C3AED)}
+nav{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px}
+nav button{flex:1 0 auto;padding:10px 14px;border:1px solid var(--borde);background:var(--card);color:var(--fg);border-radius:10px;font-weight:600;font-size:14px}
+nav button.on{background:var(--fucsia);border-color:var(--fucsia);color:#fff}
+section{display:none;max-width:760px;margin:0 auto}
+section.on{display:block}
+.card{background:var(--card);border:1px solid var(--borde);border-radius:12px;padding:14px;margin:10px 0}
+.card h2{margin:0 0 8px;font-size:15px;color:var(--indigo)}
+label{display:block;font-size:12px;color:var(--soft);margin:8px 0 2px}
+input,select{width:100%;padding:10px;border:1px solid var(--borde);border-radius:8px;background:var(--bg);color:var(--fg);font-size:16px}
+.fila2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+button.b{padding:11px 14px;border:0;border-radius:10px;font-weight:700;font-size:15px;background:var(--indigo);color:var(--bg);cursor:pointer}
+button.b.f{background:var(--fucsia);color:#fff}
+button.b.t{background:var(--turq);color:#fff}
+button.b.g{background:var(--card);color:var(--fg);border:1px solid var(--borde)}
+button.b:disabled{opacity:.45}
+.fila{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.msg{padding:8px 10px;border-radius:8px;font-size:13px;margin-top:8px}
+.msg.ok{background:var(--ok-bg);color:var(--ok-fg)}
+.msg.av{background:var(--aviso-bg);color:var(--aviso-fg)}
+.msg.er{background:#FEE2E2;color:#991B1B}
+canvas{width:100%;display:block;border-radius:8px;background:var(--bg);border:1px solid var(--borde)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:7px 6px;text-align:center;border-bottom:1px solid var(--borde)}
+th{color:var(--soft);font-weight:600}
+tr.act td{background:var(--sel)}
+tr.sig td:first-child{font-weight:800;color:var(--fucsia)}
+.chip{display:inline-flex;align-items:center;gap:4px;background:var(--fila);border:1px solid var(--borde);border-radius:999px;padding:2px 8px;margin:1px;font-size:12px}
+.chip.mejor{border-color:var(--turq);color:var(--turq);font-weight:700}
+.chip b{cursor:pointer;color:var(--rojo)}
+.gran{font-size:44px;font-weight:800;color:var(--fucsia);line-height:1.1}
+.tarjetas{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.t{background:var(--card);border:1px solid var(--borde);border-left:5px solid var(--indigo);border-radius:10px;padding:8px 10px}
+.t small{display:block;color:var(--soft);font-size:11px;font-weight:700;letter-spacing:.04em}
+.t span{font-size:22px;font-weight:800}
+.t em{display:block;font-style:normal;color:var(--soft);font-size:11px}
+.scroll{overflow-x:auto}
+.estado{display:inline-block;padding:3px 9px;border-radius:999px;font-size:12px;font-weight:700;background:var(--fila);border:1px solid var(--borde)}
+.estado.ok{background:var(--ok-bg);color:var(--ok-fg)}
+.estado.no{background:#FEE2E2;color:#991B1B}
+ul.av{margin:6px 0 0;padding-left:18px;font-size:13px;color:var(--aviso-fg)}
+</style>
+</head>
+<body>
+<header>
+  <h1>Perfil F-V vertical con el celular</h1>
+  <div class="sub">El acelerómetro mide el tiempo de vuelo de cada salto (h = g·t²/8) y calcula el perfil fuerza-velocidad (Samozino).</div>
+  <div class="franja"></div>
+</header>
+<nav id="nav">
+  <button data-t="atleta" class="on">1 · Atleta</button>
+  <button data-t="medir">2 · Medir</button>
+  <button data-t="result">3 · Resultado</button>
+  <button data-t="hist">4 · Historial</button>
+</nav>
+
+<!-- ===================== ATLETA ===================== -->
+<section id="s-atleta" class="on">
+  <div class="card">
+    <h2>Deportista</h2>
+    <label for="sel-atleta">Elegir</label>
+    <select id="sel-atleta"></select>
+    <div class="fila" style="margin-top:8px">
+      <button class="b f" id="btn-nuevo">＋ Nuevo</button>
+      <button class="b g" id="btn-borrar">Eliminar</button>
+    </div>
+    <div id="panel-nuevo" hidden style="margin-top:8px">
+      <label for="inp-nuevo">Nombre del nuevo deportista</label>
+      <div class="fila"><input id="inp-nuevo" style="flex:1" maxlength="40" autocomplete="off">
+        <button class="b t" id="btn-crear">Crear</button><button class="b g" id="btn-cancelar">Cancelar</button></div>
+    </div>
+    <div id="panel-borrar" hidden style="margin-top:8px">
+      <div class="msg av">¿Eliminar a este deportista y todo su historial? No se puede deshacer.</div>
+      <div class="fila" style="margin-top:6px"><button class="b f" id="btn-borrar-si">Sí, eliminar</button><button class="b g" id="btn-borrar-no">No</button></div>
+    </div>
+  </div>
+  <div class="card" id="card-datos">
+    <h2>Datos para el cálculo</h2>
+    <div class="fila2">
+      <div><label for="peso">Peso (kg)</label><input id="peso" inputmode="decimal" placeholder="75"></div>
+      <div><label for="ensayos">Saltos por carga</label>
+        <select id="ensayos"><option>1</option><option selected>2</option><option>3</option></select></div>
+      <div><label for="cp">Cadera–piso de pie (m)</label><input id="cp" inputmode="decimal" placeholder="0,95"></div>
+      <div><label for="c90">Cadera–piso a 90° (m)</label><input id="c90" inputmode="decimal" placeholder="0,50"></div>
+    </div>
+    <div class="sub" id="hpo-txt" style="margin-top:6px"></div>
+    <label for="cargas">Cargas (% del peso corporal, separadas por coma)</label>
+    <input id="cargas" value="0, 20, 40, 60, 80">
+    <div class="sub" style="margin-top:6px">hPO = cadera de pie − cadera a 90° (recorrido del impulso). Mide con el deportista descalzo, en metros.</div>
+    <div id="msg-datos"></div>
+    <div class="fila" style="margin-top:10px"><button class="b f" id="btn-ir-medir">Ir a medir ▸</button></div>
+  </div>
+</section>
+
+<!-- ===================== MEDIR ===================== -->
+<section id="s-medir">
+  <div class="card">
+    <h2>Sensor de movimiento</h2>
+    <div class="fila">
+      <button class="b f" id="btn-sensor">Activar sensor</button>
+      <span class="estado" id="est-sensor">sin activar</span>
+      <span class="sub" id="hz-txt"></span>
+    </div>
+    <div id="ayuda-sensor"></div>
+    <canvas id="cv-senal" height="150" style="margin-top:8px"></canvas>
+    <div class="sub" style="margin-top:4px">Línea de arriba: choque (impulso/aterrizaje). Línea de abajo: umbral de «caída libre». El salto se detecta cuando la señal baja de la línea de abajo.</div>
+    <label for="bajo">Umbral de caída libre: <b id="bajo-v">4,5</b> m/s²</label>
+    <input type="range" id="bajo" min="2" max="8" step="0.5" value="4.5">
+    <div class="msg av" style="margin-top:8px">Pon el celular <b>fijo a la cintura</b> (cinturón o banda, pantalla hacia afuera) o en el bolsillo delantero con el pantalón ajustado. Si va suelto o en la mano, la medida no sirve. Salta con las manos en la cintura.</div>
+  </div>
+
+  <div class="card" style="text-align:center">
+    <div class="sub" id="obj-txt">Elige la carga y salta</div>
+    <div class="gran" id="ult-h">—</div>
+    <div class="sub" id="ult-d">Último salto detectado</div>
+    <div class="fila" style="justify-content:center;margin-top:8px">
+      <button class="b g" id="btn-desc">Descartar último</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Saltos por carga</h2>
+    <div class="scroll"><table id="tb-medir"></table></div>
+    <div class="sub" style="margin-top:6px">Toca una fila para elegir a qué carga se asigna el siguiente salto. Avanza sola cuando completas los saltos de esa carga.</div>
+    <label for="man-h">Añadir un salto a mano (altura en cm)</label>
+    <div class="fila"><input id="man-h" inputmode="decimal" style="flex:1" placeholder="32,5"><button class="b t" id="btn-man">Añadir</button></div>
+    <div class="fila" style="margin-top:10px"><button class="b f" id="btn-ir-res">Calcular perfil ▸</button></div>
+  </div>
+</section>
+
+<!-- ===================== RESULTADO ===================== -->
+<section id="s-result">
+  <div class="card" id="card-res"></div>
+</section>
+
+<!-- ===================== HISTORIAL ===================== -->
+<section id="s-hist">
+  <div class="card">
+    <h2 id="hist-tit">Historial</h2>
+    <canvas id="cv-hist" height="190"></canvas>
+    <div class="scroll" style="margin-top:8px"><table id="tb-hist"></table></div>
+    <div class="fila" style="margin-top:10px">
+      <button class="b t" id="btn-csv">⬇ Descargar CSV</button>
+      <button class="b g" id="btn-borrar-ses" disabled>Borrar sesión elegida</button>
+    </div>
+    <div id="msg-hist"></div>
+  </div>
+</section>
+
+<script>
+// <nucleo>
+var G = 9.81;
+var RANGO_F0 = [15, 60], RANGO_V0 = [1.5, 6];
+
+function aNumero(t) { var n = parseFloat(String(t).trim().replace(',', '.')); return isFinite(n) ? n : NaN; }
+
+function parsearCargas(texto) {
+    var partes = String(texto).split(/[,;\s]+/).filter(Boolean);
+    var v = partes.map(Number);
+    if (v.some(function (x) { return !isFinite(x); })) throw new Error('Las cargas deben ser números separados por coma (ej. 0, 20, 40, 60, 80).');
+    v = v.filter(function (x, i) { return v.indexOf(x) === i; }).sort(function (a, b) { return a - b; });
+    if (v.length < 2) throw new Error('Necesitas al menos 2 cargas distintas.');
+    if (v[0] < 0 || v[v.length - 1] > 150) throw new Error('Las cargas deben estar entre 0 y 150 % del peso corporal.');
+    return v;
+}
+
+// Detector de salto: caída libre (|a| ~ 0) precedida por un impulso y seguida por un choque de aterrizaje.
+function crearDetectorSalto(cfg) {
+    cfg = Object.assign({ bajo: 4.5, alto: 15, minVuelo: 0.15, maxVuelo: 1.2, ventanaImpulso: 0.8, ventanaAterrizaje: 0.3 }, cfg || {});
+    var prevT = null, prevM = null, ultimoAlto = -1e9;
+    var enVuelo = false, t0 = 0, pend = null;
+    function cruce(ta, ma, tb, mb, nivel) { return ta + (nivel - ma) * (tb - ta) / (mb - ma); }
+    return {
+        cfg: cfg,
+        procesar: function (t, m) {
+            var res = null;
+            if (prevT !== null) {
+                if (!enVuelo && !pend && prevM >= cfg.bajo && m < cfg.bajo) {
+                    var tc = cruce(prevT, prevM, t, m, cfg.bajo);
+                    if (tc - ultimoAlto <= cfg.ventanaImpulso) { enVuelo = true; t0 = tc; }
+                } else if (enVuelo) {
+                    if (t - t0 > cfg.maxVuelo) enVuelo = false;
+                    else if (prevM < cfg.bajo && m >= cfg.bajo) {
+                        var t1 = cruce(prevT, prevM, t, m, cfg.bajo);
+                        enVuelo = false;
+                        var dur = t1 - t0;
+                        if (dur >= cfg.minVuelo && dur <= cfg.maxVuelo) pend = { t0: t0, t1: t1, dur: dur, limite: t1 + cfg.ventanaAterrizaje };
+                    }
+                }
+                if (pend) {
+                    if (m >= cfg.alto) { res = { vuelo: pend.dur, altura: G * pend.dur * pend.dur / 8, t0: pend.t0, t1: pend.t1 }; pend = null; }
+                    else if (t > pend.limite) pend = null;
+                }
+            }
+            if (m >= cfg.alto) ultimoAlto = t;
+            prevT = t; prevM = m;
+            return res;
+        },
+        reiniciar: function () { prevT = prevM = null; enVuelo = false; pend = null; ultimoAlto = -1e9; }
+    };
+}
+
+function regresion(x, y) {
+    var n = x.length, sx = 0, sy = 0, sxx = 0, sxy = 0, syy = 0;
+    for (var i = 0; i < n; i++) { sx += x[i]; sy += y[i]; sxx += x[i] * x[i]; sxy += x[i] * y[i]; syy += y[i] * y[i]; }
+    var d = n * sxx - sx * sx;
+    var pend = (n * sxy - sx * sy) / d, inter = (sy - pend * sx) / n;
+    var r = (n * sxy - sx * sy) / Math.sqrt((n * sxx - sx * sx) * (n * syy - sy * sy));
+    return { pend: pend, inter: inter, r: r };
+}
+
+function alturaModelo(Pmax, Sfv, hpo) {
+    var F0 = 2 * Math.sqrt(-Pmax * Sfv);
+    var d = Sfv * Sfv / 4 + (2 / hpo) * (F0 - G);
+    if (d < 0) return 0;
+    var q = Math.sqrt(d) + Sfv / 2;
+    return hpo * hpo / (2 * G) * q * q;
+}
+
+function sfvOptimo(Pmax, hpo, alpha) {
+    var U = G * Math.sin(alpha * Math.PI / 180);
+    var S = Math.cbrt(-Math.pow(U, 6) * Math.pow(hpo, 6) - 18 * Math.pow(U, 3) * Math.pow(hpo, 5) * Pmax * Pmax
+        - 54 * Math.pow(hpo, 4) * Math.pow(Pmax, 4)
+        + 6 * Math.sqrt(3) * Math.sqrt(2 * Math.pow(U, 3) * Math.pow(hpo, 9) * Math.pow(Pmax, 6) + 27 * Math.pow(hpo, 8) * Math.pow(Pmax, 8)));
+    return -(U * U / (3 * Pmax)) - (-Math.pow(U, 4) * Math.pow(hpo, 4) - 12 * U * Math.pow(hpo, 3) * Pmax * Pmax)
+        / (3 * hpo * hpo * Pmax * S) + S / (3 * hpo * hpo * Pmax);
+}
+
+// peso (kg), hpo (m), extras (kg), alturas (m: mejor salto de cada carga)
+function calcularPerfil(peso, hpo, extras, alturas) {
+    var Fabs = [], v = [];
+    for (var i = 0; i < alturas.length; i++) {
+        Fabs.push((peso + extras[i]) * G * (alturas[i] / hpo + 1));
+        v.push(Math.sqrt(G * alturas[i] / 2));
+    }
+    var rg = regresion(v, Fabs);
+    var res = { v: v, Frel: Fabs.map(function (f) { return f / peso; }), r: rg.r, r2: rg.r * rg.r, valido: true, motivo: '' };
+    var F0 = rg.inter / peso, Sfv = rg.pend / peso;
+    var vmax = Math.max.apply(null, v);
+    if (!(Sfv < 0) || !(F0 > 0) || (-F0 / Sfv) <= vmax) {
+        res.valido = false; res.F0 = F0; res.Sfv = Sfv;
+        res.motivo = 'relación F-v no válida (pendiente no negativa o V0 menor que la velocidad máxima medida)';
+        return res;
+    }
+    var V0 = -F0 / Sfv, Pmax = F0 * V0 / 4;
+    var o90 = sfvOptimo(Pmax, hpo, 90), o30 = sfvOptimo(Pmax, hpo, 30);
+    var ratio90 = Sfv / o90 * 100, ratio30 = Sfv / o30 * 100;
+    var F0opt = Math.sqrt(4 * Pmax * -o90), F0opt30 = Math.sqrt(4 * Pmax * -o30);
+    var hReal = alturaModelo(Pmax, Sfv, hpo), hMax = alturaModelo(Pmax, o90, hpo);
+    Object.assign(res, { F0: F0, V0: V0, Pmax: Pmax, Sfv: Sfv, sfvOpt90: o90, sfvOpt30: o30, ratio90: ratio90, ratio30: ratio30,
+        fvimb: Math.abs(100 - ratio90), F0opt: F0opt, V0opt: 4 * Pmax / F0opt, F0opt30: F0opt30, V0opt30: 4 * Pmax / F0opt30,
+        perdida: hMax > 0 ? (1 - hReal / hMax) * 100 : 0 });
+    return res;
+}
+
+function clasificarPerfil(r90) {
+    if (r90 < 90) return 'DÉFICIT DE FUERZA';
+    if (r90 > 110) return 'DÉFICIT DE VELOCIDAD';
+    return 'PERFIL EQUILIBRADO';
+}
+
+function controlesCalidad(cargasPct, ensayos, r, hpo) {
+    var av = [];
+    var pares = [];
+    for (var i = 0; i < cargasPct.length; i++) {
+        var hs = ensayos[i];
+        if (!hs || !hs.length) continue;
+        var mx = Math.max.apply(null, hs), mn = Math.min.apply(null, hs);
+        pares.push([cargasPct[i], mx]);
+        if (hs.length >= 2 && mx > 0) {
+            var dif = (mx - mn) / mx * 100;
+            if (dif > 10) av.push(cargasPct[i] + ' % PC: los saltos difieren ' + dif.toFixed(0) + ' % entre sí (' + (mn * 100).toFixed(1) + ' y ' + (mx * 100).toFixed(1) + ' cm). Repite el salto.');
+        }
+    }
+    for (var k = 0; k < pares.length - 1; k++) {
+        if (pares[k + 1][1] >= pares[k][1])
+            av.push('La altura no baja al subir la carga: ' + pares[k][0] + ' % → ' + (pares[k][1] * 100).toFixed(1) + ' cm; ' + pares[k + 1][0] + ' % → ' + (pares[k + 1][1] * 100).toFixed(1) + ' cm.');
+    }
+    var alt = pares.map(function (p) { return p[1]; });
+    if (Math.max.apply(null, alt) > 0.80 || Math.min.apply(null, alt) < 0.05)
+        av.push('Alturas poco plausibles (' + (Math.min.apply(null, alt) * 100).toFixed(1) + '–' + (Math.max.apply(null, alt) * 100).toFixed(1) + ' cm). Revisa dónde llevas el celular y el umbral.');
+    if (hpo < 0.20 || hpo > 0.70) av.push('hPO = ' + hpo.toFixed(2) + ' m sale del rango orientativo (0,20–0,70 m). Revisa que las alturas de cadera estén en metros.');
+    if (pares.length < 3) av.push('Con menos de 3 cargas el perfil es poco fiable.');
+    if (r.r2 < 0.90) av.push('Ajuste lineal débil (r² = ' + r.r2.toFixed(2) + '). Conviene repetir algún salto.');
+    if (r.F0 < RANGO_F0[0] || r.F0 > RANGO_F0[1] || r.V0 < RANGO_V0[0] || r.V0 > RANGO_V0[1])
+        av.push('F0 = ' + r.F0.toFixed(1) + ' N/kg y V0 = ' + r.V0.toFixed(2) + ' m/s salen del rango habitual en saltos verticales; revisa hPO y los saltos.');
+    return av;
+}
+// </nucleo>
+
+/* ==================== Interfaz ==================== */
+var $ = function (id) { return document.getElementById(id); };
+var CLAVE = 'perfilFVCelular_v1';
+var DB = { atletas: {}, actual: '' };
+try { var g = localStorage.getItem(CLAVE); if (g) DB = JSON.parse(g); } catch (e) {}
+if (!DB.atletas) DB = { atletas: {}, actual: '' };
+function guardarDB() { try { localStorage.setItem(CLAVE, JSON.stringify(DB)); } catch (e) {} }
+function A() { return DB.atletas[DB.actual] || null; }
+function fmt(x, d) { return (x === null || x === undefined || !isFinite(x)) ? '—' : x.toFixed(d).replace('.', ','); }
+function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+
+/* ---------- pestañas ---------- */
+function irA(t) {
+    document.querySelectorAll('nav button').forEach(function (b) { b.classList.toggle('on', b.dataset.t === t); });
+    document.querySelectorAll('section').forEach(function (s) { s.classList.toggle('on', s.id === 's-' + t); });
+    if (t === 'medir') { pintarMedir(); }
+    if (t === 'result') pintarResultado();
+    if (t === 'hist') pintarHistorial();
+    window.scrollTo(0, 0);
+}
+$('nav').addEventListener('click', function (e) { if (e.target.dataset && e.target.dataset.t) irA(e.target.dataset.t); });
+
+/* ---------- atleta ---------- */
+function llenarSelect() {
+    var sel = $('sel-atleta'), nombres = Object.keys(DB.atletas).sort();
+    sel.innerHTML = nombres.length ? nombres.map(function (n) { return '<option' + (n === DB.actual ? ' selected' : '') + '>' + esc(n) + '</option>'; }).join('') : '<option value="">(crea un deportista)</option>';
+    $('card-datos').style.opacity = A() ? 1 : .45;
+}
+function cargarFormulario() {
+    var a = A();
+    ['peso', 'cp', 'c90', 'cargas'].forEach(function (k) { $(k).value = a ? (a[k] || '') : ''; });
+    $('ensayos').value = a ? a.nEns : '2';
+    actualizarHpo();
+}
+function actualizarHpo() {
+    var p = aNumero($('cp').value), q = aNumero($('c90').value);
+    $('hpo-txt').textContent = (isFinite(p) && isFinite(q) && p > q) ? 'hPO = ' + fmt(p - q, 3) + ' m' : '';
+}
+function nuevoAtleta(n) {
+    return { nombre: n, peso: '', cp: '', c90: '', cargas: '0, 20, 40, 60, 80', nEns: 2, medidas: {}, activa: 0, sesiones: [] };
+}
+$('sel-atleta').addEventListener('change', function () { DB.actual = this.value; guardarDB(); cargarFormulario(); pintarMedir(); });
+$('btn-nuevo').onclick = function () { $('panel-nuevo').hidden = false; $('panel-borrar').hidden = true; $('inp-nuevo').value = ''; $('inp-nuevo').focus(); };
+$('btn-cancelar').onclick = function () { $('panel-nuevo').hidden = true; };
+$('btn-crear').onclick = function () {
+    var n = $('inp-nuevo').value.trim();
+    if (!n) return;
+    if (DB.atletas[n]) { DB.actual = n; } else { DB.atletas[n] = nuevoAtleta(n); DB.actual = n; }
+    guardarDB(); $('panel-nuevo').hidden = true; llenarSelect(); cargarFormulario();
+};
+$('btn-borrar').onclick = function () { if (!A()) return; $('panel-borrar').hidden = false; $('panel-nuevo').hidden = true; };
+$('btn-borrar-no').onclick = function () { $('panel-borrar').hidden = true; };
+$('btn-borrar-si').onclick = function () {
+    delete DB.atletas[DB.actual]; DB.actual = Object.keys(DB.atletas).sort()[0] || '';
+    guardarDB(); $('panel-borrar').hidden = true; llenarSelect(); cargarFormulario();
+};
+['peso', 'cp', 'c90', 'cargas'].forEach(function (k) {
+    $(k).addEventListener('input', function () { var a = A(); if (!a) return; a[k] = this.value; guardarDB(); actualizarHpo(); });
+});
+$('ensayos').addEventListener('change', function () { var a = A(); if (!a) return; a.nEns = +this.value; guardarDB(); });
+
+function datosAtleta() {
+    var a = A();
+    if (!a) throw new Error('Primero crea o elige un deportista.');
+    var peso = aNumero(a.peso), cp = aNumero(a.cp), c90 = aNumero(a.c90);
+    if (!(peso >= 20 && peso <= 250)) throw new Error('El peso debe estar en kg (entre 20 y 250).');
+    if (!isFinite(cp) || !isFinite(c90)) throw new Error('Falta la altura de cadera de pie y a 90°.');
+    if (cp > 3 || c90 > 3) throw new Error('Las alturas de cadera parecen estar en centímetros. Escríbelas en metros (ej. 0,95 y 0,50).');
+    if (cp <= c90) throw new Error('La cadera de pie debe ser mayor que la de 90°.');
+    return { peso: peso, hpo: cp - c90, cargas: parsearCargas(a.cargas) };
+}
+$('btn-ir-medir').onclick = function () {
+    try { datosAtleta(); $('msg-datos').innerHTML = ''; irA('medir'); }
+    catch (e) { $('msg-datos').innerHTML = '<div class="msg er">' + esc(e.message) + '</div>'; }
+};
+
+/* ---------- medir ---------- */
+var sensor = { activo: false, n: 0, hz: 0, ultimoSeg: 0, cuenta: 0, handler: null };
+var buf = [];                       // [t, m, enVuelo]
+var detector = crearDetectorSalto({ bajo: 4.5 });
+var sonidoCtx = null;
+function beep(f, ms) {
+    try {
+        sonidoCtx = sonidoCtx || new (window.AudioContext || window.webkitAudioContext)();
+        var o = sonidoCtx.createOscillator(), g = sonidoCtx.createGain();
+        o.frequency.value = f; o.type = 'sine'; g.gain.value = .15;
+        o.connect(g); g.connect(sonidoCtx.destination); o.start(); o.stop(sonidoCtx.currentTime + ms / 1000);
+    } catch (e) {}
+}
+function alMovimiento(ev) {
+    var a = ev.accelerationIncludingGravity;
+    if (!a || a.x === null || a.y === null || a.z === null) return;
+    var t = ev.timeStamp / 1000, m = Math.sqrt(a.x * a.x + a.y * a.y + a.z * a.z);
+    sensor.n++; sensor.cuenta++;
+    buf.push([t, m]);
+    while (buf.length && t - buf[0][0] > 3) buf.shift();
+    var r = detector.procesar(t, m);
+    if (r) { buf.marcas = (buf.marcas || []).concat([r]).filter(function (x) { return t - x.t1 < 3; }); registrarSalto(r); }
+}
+function mostrarAyuda(html) { $('ayuda-sensor').innerHTML = html ? '<div class="msg av">' + html + '</div>' : ''; }
+function estadoSensor(txt, cls) { var e = $('est-sensor'); e.textContent = txt; e.className = 'estado ' + (cls || ''); }
+$('btn-sensor').onclick = function () {
+    mostrarAyuda('');
+    if (!window.isSecureContext) { estadoSensor('bloqueado', 'no'); mostrarAyuda('La página no está en https, por eso el navegador bloquea el sensor. Ábrela desde su dirección https.'); return; }
+    if (typeof DeviceMotionEvent === 'undefined') { estadoSensor('no disponible', 'no'); mostrarAyuda('Este navegador no tiene sensor de movimiento.'); return; }
+    var iniciar = function () {
+        window.removeEventListener('devicemotion', alMovimiento);
+        window.addEventListener('devicemotion', alMovimiento);
+        sensor.activo = true; sensor.n = 0; detector.reiniciar(); estadoSensor('esperando datos…');
+        $('btn-sensor').textContent = 'Reiniciar sensor';
+        setTimeout(function () {
+            if (sensor.n === 0) {
+                estadoSensor('sin datos', 'no');
+                mostrarAyuda('El navegador no entrega datos. En Chrome: candado de la barra de direcciones → Configuración del sitio → <b>Sensores de movimiento</b> → Permitir. Luego toca de nuevo.');
+            }
+        }, 2500);
+    };
+    if (typeof DeviceMotionEvent.requestPermission === 'function') {
+        var lanzado = false, ir = function () { if (!lanzado) { lanzado = true; iniciar(); } };
+        // Si el navegador no responde (algunos Chrome exponen la función sin mostrar diálogo), se activa igual
+        var plazo = setTimeout(ir, 4000);
+        DeviceMotionEvent.requestPermission().then(function (r) {
+            clearTimeout(plazo);
+            if (r === 'granted') ir();
+            else { estadoSensor('denegado', 'no'); mostrarAyuda('Permiso denegado. En iPhone: Ajustes → Safari → Movimiento y orientación, y recarga la página. En Chrome: candado → Configuración del sitio → Sensores de movimiento → Permitir.'); }
+        }).catch(function () { clearTimeout(plazo); ir(); });
+    } else iniciar();
+};
+setInterval(function () {
+    if (!sensor.activo) return;
+    sensor.hz = sensor.cuenta; sensor.cuenta = 0;
+    if (sensor.n > 0) { estadoSensor('activo', 'ok'); mostrarAyuda(''); $('hz-txt').textContent = sensor.hz + ' lecturas/s' + (sensor.hz < 40 ? ' (baja: menos precisión)' : ''); }
+}, 1000);
+$('bajo').addEventListener('input', function () { $('bajo-v').textContent = fmt(+this.value, 1); detector.cfg.bajo = +this.value; });
+
+function dibujarSenal() {
+    var cv = $('cv-senal');
+    if (!cv.offsetWidth) return;
+    var dpr = window.devicePixelRatio || 1, w = cv.offsetWidth, h = 150;
+    if (cv.width !== w * dpr) { cv.width = w * dpr; cv.height = h * dpr; }
+    var c = cv.getContext('2d'); c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, w, h);
+    var css = getComputedStyle(document.documentElement);
+    var MAXV = 35, y = function (v) { return h - 8 - Math.min(v, MAXV) / MAXV * (h - 16); };
+    c.strokeStyle = css.getPropertyValue('--borde'); c.lineWidth = 1; c.beginPath();
+    [0, 9.81, 20, 30].forEach(function (v) { c.moveTo(0, y(v)); c.lineTo(w, y(v)); }); c.stroke();
+    c.setLineDash([5, 4]); c.strokeStyle = '#F97316'; c.beginPath(); c.moveTo(0, y(detector.cfg.bajo)); c.lineTo(w, y(detector.cfg.bajo)); c.stroke();
+    c.strokeStyle = '#7C3AED'; c.beginPath(); c.moveTo(0, y(detector.cfg.alto)); c.lineTo(w, y(detector.cfg.alto)); c.stroke(); c.setLineDash([]);
+    if (!buf.length) { c.fillStyle = css.getPropertyValue('--tenue'); c.font = '13px sans-serif'; c.fillText('Activa el sensor para ver la señal', 12, h / 2); return; }
+    var tf = buf[buf.length - 1][0], x = function (t) { return w - (tf - t) / 3 * w; };
+    (buf.marcas || []).forEach(function (m) { c.fillStyle = 'rgba(13,148,136,.22)'; c.fillRect(x(m.t0), 0, Math.max(2, x(m.t1) - x(m.t0)), h); });
+    c.strokeStyle = '#DB2777'; c.lineWidth = 1.6; c.beginPath();
+    buf.forEach(function (p, i) { if (i) c.lineTo(x(p[0]), y(p[1])); else c.moveTo(x(p[0]), y(p[1])); }); c.stroke();
+}
+(function bucle() { if (document.getElementById('s-medir').classList.contains('on')) dibujarSenal(); requestAnimationFrame(bucle); })();
+
+function ensayos() { var a = A(); return a ? a.nEns : 2; }
+function registrarSalto(r) {
+    var a = A();
+    $('ult-h').textContent = fmt(r.altura * 100, 1) + ' cm';
+    $('ult-d').textContent = 'Tiempo de vuelo ' + fmt(r.vuelo, 3) + ' s';
+    beep(880, 90); try { navigator.vibrate && navigator.vibrate(60); } catch (e) {}
+    if (!a) return;
+    agregarAltura(r.altura);
+}
+function agregarAltura(h) {
+    var a = A(), cargas;
+    try { cargas = datosAtleta().cargas; } catch (e) { $('ult-d').textContent = 'Completa los datos del atleta (pestaña 1) antes de medir.'; return; }
+    var i = Math.min(a.activa || 0, cargas.length - 1);
+    (a.medidas[i] = a.medidas[i] || []).push(h);
+    if (a.medidas[i].length >= a.nEns && i < cargas.length - 1) a.activa = i + 1; else a.activa = i;
+    a.ultimo = [i, a.medidas[i].length - 1];
+    guardarDB(); pintarMedir();
+}
+$('btn-desc').onclick = function () {
+    var a = A(); if (!a || !a.ultimo) return;
+    var i = a.ultimo[0], arr = a.medidas[i] || [];
+    if (arr.length) { arr.pop(); a.activa = i; }
+    a.ultimo = null; guardarDB(); pintarMedir(); $('ult-h').textContent = '—'; $('ult-d').textContent = 'Salto descartado';
+};
+$('btn-man').onclick = function () {
+    var h = aNumero($('man-h').value);
+    if (!(h >= 3 && h <= 100)) { $('ult-d').textContent = 'Altura manual no válida (3–100 cm).'; return; }
+    agregarAltura(h / 100); $('man-h').value = '';
+};
+function pintarMedir() {
+    var a = A(), tb = $('tb-medir');
+    if (!a) { tb.innerHTML = '<tr><td>Crea un deportista en la pestaña 1.</td></tr>'; return; }
+    var d; try { d = datosAtleta(); } catch (e) { tb.innerHTML = '<tr><td>' + esc(e.message) + '</td></tr>'; return; }
+    var html = '<tr><th>Carga</th><th>Extra</th><th>Saltos (cm)</th><th>Mejor</th></tr>';
+    var sig = Math.min(a.activa || 0, d.cargas.length - 1);
+    d.cargas.forEach(function (pct, i) {
+        var arr = a.medidas[i] || [], mejor = arr.length ? Math.max.apply(null, arr) : null;
+        html += '<tr data-i="' + i + '" class="' + (i === sig ? 'act sig' : '') + '"><td>' + pct + ' %</td><td>' + fmt(d.peso * pct / 100, 1) + ' kg</td><td>' +
+            arr.map(function (h, j) { return '<span class="chip' + (h === mejor ? ' mejor' : '') + '">' + fmt(h * 100, 1) + ' <b data-q="' + i + ',' + j + '">×</b></span>'; }).join('') +
+            (arr.length < a.nEns ? '<span class="sub"> ' + (a.nEns - arr.length) + ' por hacer</span>' : '') + '</td><td>' + (mejor === null ? '—' : fmt(mejor * 100, 1)) + '</td></tr>';
+    });
+    tb.innerHTML = html;
+    var carga = d.cargas[sig];
+    $('obj-txt').textContent = 'Próximo salto: carga ' + carga + ' % PC (' + fmt(d.peso * carga / 100, 1) + ' kg extra)';
+}
+$('tb-medir').addEventListener('click', function (e) {
+    var a = A(); if (!a) return;
+    if (e.target.dataset && e.target.dataset.q) {
+        var p = e.target.dataset.q.split(',').map(Number); a.medidas[p[0]].splice(p[1], 1); guardarDB(); pintarMedir(); return;
+    }
+    var tr = e.target.closest('tr[data-i]'); if (tr) { a.activa = +tr.dataset.i; guardarDB(); pintarMedir(); }
+});
+$('btn-ir-res').onclick = function () { irA('result'); };
+
+/* ---------- resultado ---------- */
+var ultimo = null;
+function calcularAtleta() {
+    var a = A(), d = datosAtleta();
+    var cs = [], ens = [], alt = [], ext = [];
+    d.cargas.forEach(function (pct, i) {
+        var arr = (a.medidas[i] || []).slice();
+        if (!arr.length) return;
+        cs.push(pct); ens.push(arr); alt.push(Math.max.apply(null, arr)); ext.push(d.peso * pct / 100);
+    });
+    if (cs.length < 3) throw new Error('Se necesitan saltos en al menos 3 cargas distintas (tienes ' + cs.length + ').');
+    var r = calcularPerfil(d.peso, d.hpo, ext, alt);
+    if (!r.valido) { var e = new Error('Perfil no válido: ' + r.motivo + '. Revisa los saltos y repite el registro.'); e.datos = r; throw e; }
+    return { d: d, cs: cs, ens: ens, alt: alt, r: r, av: controlesCalidad(cs, ens, r, d.hpo), diag: clasificarPerfil(r.ratio90) };
+}
+function tarjeta(tit, val, det, color) { return '<div class="t" style="border-left-color:' + color + '"><small>' + tit + '</small><span style="color:' + color + '">' + val + '</span><em>' + det + '</em></div>'; }
+function pintarResultado() {
+    var cont = $('card-res');
+    try { ultimo = calcularAtleta(); } catch (e) {
+        ultimo = null; cont.innerHTML = '<h2>Resultado</h2><div class="msg er">' + esc(e.message) + '</div>'; return;
+    }
+    var u = ultimo, r = u.r;
+    cont.innerHTML = '<h2>Perfil F-v · ' + esc(DB.actual) + '</h2>' +
+        '<div class="tarjetas">' +
+        tarjeta('POTENCIA MÁX. (Pmax)', fmt(r.Pmax, 1) + ' W/kg', '= F0·V0 / 4', '#DB2777') +
+        tarjeta('FUERZA MÁX. (F0)', fmt(r.F0, 1) + ' N/kg', 'óptima ' + fmt(r.F0opt, 1), '#F97316') +
+        tarjeta('VELOCIDAD MÁX. (V0)', fmt(r.V0, 2) + ' m/s', 'óptima ' + fmt(r.V0opt, 2), '#7C3AED') +
+        tarjeta('PENDIENTE (Sfv)', fmt(r.Sfv, 2), '% del óptimo: ' + fmt(r.ratio90, 0) + ' %', '#0D9488') + '</div>' +
+        '<div style="margin:10px 0"><span class="estado ' + (u.diag === 'PERFIL EQUILIBRADO' ? 'ok' : 'no') + '">' + u.diag + '</span> ' +
+        '<span class="sub"> desequilibrio F-v ' + fmt(r.fvimb, 0) + ' % · pérdida de altura ' + fmt(r.perdida, 1) + ' % · r² ' + fmt(r.r2, 2) + '</span></div>' +
+        '<canvas id="cv-fv" height="260"></canvas>' +
+        '<div class="sub" style="margin-top:4px">Puntos: mejor salto de cada carga. Línea sólida: tu perfil. Línea punteada: perfil óptimo con la misma Pmax.</div>' +
+        (u.av.length ? '<ul class="av">' + u.av.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>' : '<div class="msg ok">Sin avisos de calidad.</div>') +
+        '<div class="fila" style="margin-top:10px"><button class="b f" id="btn-guardar">Guardar en el historial</button></div><div id="msg-guardar"></div>';
+    dibujarFV(u);
+    $('btn-guardar').onclick = guardarSesion;
+}
+function dibujarFV(u) {
+    var cv = $('cv-fv'), dpr = window.devicePixelRatio || 1, w = cv.offsetWidth, h = 260;
+    cv.width = w * dpr; cv.height = h * dpr;
+    var c = cv.getContext('2d'); c.setTransform(dpr, 0, 0, dpr, 0, 0);
+    var css = getComputedStyle(document.documentElement), r = u.r;
+    var L = 44, R = 12, T = 14, B = 34;
+    var xmax = Math.max(r.V0, r.V0opt) * 1.08, ymax = Math.max(r.F0, r.F0opt) * 1.1;
+    var X = function (v) { return L + v / xmax * (w - L - R); }, Y = function (f) { return h - B - f / ymax * (h - T - B); };
+    c.font = '11px sans-serif'; c.fillStyle = css.getPropertyValue('--soft'); c.strokeStyle = css.getPropertyValue('--borde'); c.lineWidth = 1;
+    for (var i = 0; i <= 5; i++) {
+        var f = ymax * i / 5; c.beginPath(); c.moveTo(L, Y(f)); c.lineTo(w - R, Y(f)); c.stroke(); c.textAlign = 'right'; c.fillText(f.toFixed(0), L - 5, Y(f) + 4);
+        var v = xmax * i / 5; c.textAlign = 'center'; c.fillText(v.toFixed(1), X(v), h - B + 14);
+    }
+    c.textAlign = 'center'; c.fillText('Velocidad (m/s)', (L + w - R) / 2, h - 4);
+    c.save(); c.translate(11, (T + h - B) / 2); c.rotate(-Math.PI / 2); c.fillText('Fuerza (N/kg)', 0, 0); c.restore();
+    c.setLineDash([6, 5]); c.strokeStyle = '#0D9488'; c.lineWidth = 2; c.beginPath(); c.moveTo(X(0), Y(r.F0opt)); c.lineTo(X(r.V0opt), Y(0)); c.stroke(); c.setLineDash([]);
+    c.strokeStyle = '#DB2777'; c.lineWidth = 2.4; c.beginPath(); c.moveTo(X(0), Y(r.F0)); c.lineTo(X(r.V0), Y(0)); c.stroke();
+    c.fillStyle = '#7C3AED';
+    r.v.forEach(function (v, k) { c.beginPath(); c.arc(X(v), Y(r.Frel[k]), 5, 0, 7); c.fill(); });
+    c.fillStyle = css.getPropertyValue('--fg'); c.textAlign = 'left';
+    r.v.forEach(function (v, k) { c.fillText(u.cs[k] + '%', X(v) + 7, Y(r.Frel[k]) - 6); });
+}
+function guardarSesion() {
+    var a = A(), u = ultimo; if (!a || !u) return;
+    var r = u.r, hoy = new Date();
+    a.sesiones.push({
+        id: hoy.getTime(), fecha: hoy.toISOString(), peso: u.d.peso, hpo: u.d.hpo,
+        cargas: u.cs, alturas: u.alt, Pmax: r.Pmax, F0: r.F0, V0: r.V0, Sfv: r.Sfv, ratio90: r.ratio90, fvimb: r.fvimb, r2: r.r2, diag: u.diag
+    });
+    a.medidas = {}; a.activa = 0; a.ultimo = null;
+    guardarDB();
+    $('msg-guardar').innerHTML = '<div class="msg ok">Guardado. Los saltos de esta sesión se limpiaron para empezar otra.</div>';
+    $('btn-guardar').disabled = true;
+}
+
+/* ---------- historial ---------- */
+var selSesion = null;
+function pintarHistorial() {
+    var a = A(), tb = $('tb-hist');
+    $('hist-tit').textContent = a ? 'Historial · ' + DB.actual : 'Historial';
+    $('msg-hist').innerHTML = '';
+    if (!a || !a.sesiones.length) { tb.innerHTML = '<tr><td>Aún no hay sesiones guardadas.</td></tr>'; dibujarHist([]); $('btn-borrar-ses').disabled = true; return; }
+    var ses = a.sesiones, html = '<tr><th>Fecha</th><th>Pmax</th><th>F0</th><th>V0</th><th>Sfv</th><th>% ópt.</th><th>Cambio Pmax</th></tr>';
+    ses.forEach(function (s, i) {
+        var dif = i ? (s.Pmax - ses[i - 1].Pmax) / ses[i - 1].Pmax * 100 : null;
+        html += '<tr data-id="' + s.id + '" class="' + (s.id === selSesion ? 'act' : '') + '"><td>' + new Date(s.fecha).toLocaleDateString('es-CL') + '</td><td>' + fmt(s.Pmax, 1) + '</td><td>' + fmt(s.F0, 1) + '</td><td>' + fmt(s.V0, 2) +
+            '</td><td>' + fmt(s.Sfv, 2) + '</td><td>' + fmt(s.ratio90, 0) + '</td><td style="color:' + (dif === null ? 'inherit' : dif >= 0 ? '#0D9488' : '#E11D48') + '">' + (dif === null ? '—' : (dif >= 0 ? '+' : '') + fmt(dif, 1) + ' %') + '</td></tr>';
+    });
+    tb.innerHTML = html; dibujarHist(ses); $('btn-borrar-ses').disabled = selSesion === null;
+}
+$('tb-hist').addEventListener('click', function (e) {
+    var tr = e.target.closest('tr[data-id]'); if (!tr) return;
+    selSesion = selSesion === +tr.dataset.id ? null : +tr.dataset.id; pintarHistorial();
+});
+$('btn-borrar-ses').onclick = function () {
+    var a = A(); if (!a || selSesion === null) return;
+    a.sesiones = a.sesiones.filter(function (s) { return s.id !== selSesion; }); selSesion = null; guardarDB(); pintarHistorial();
+};
+function dibujarHist(ses) {
+    var cv = $('cv-hist'), dpr = window.devicePixelRatio || 1, w = cv.offsetWidth, h = 190;
+    cv.width = w * dpr; cv.height = h * dpr;
+    var c = cv.getContext('2d'); c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, w, h);
+    var css = getComputedStyle(document.documentElement);
+    c.font = '12px sans-serif'; c.fillStyle = css.getPropertyValue('--tenue'); c.textAlign = 'center';
+    if (!ses.length) { c.fillText('Guarda al menos una sesión para ver la evolución', w / 2, h / 2); return; }
+    var vals = ses.map(function (s) { return s.Pmax; }), mn = Math.min.apply(null, vals), mx = Math.max.apply(null, vals);
+    if (mx - mn < 1) { mx += .5; mn -= .5; }
+    var L = 40, R = 14, T = 20, B = 24, n = ses.length;
+    var X = function (i) { return n === 1 ? (L + w - R) / 2 : L + i / (n - 1) * (w - L - R); }, Y = function (v) { return h - B - (v - mn) / (mx - mn) * (h - T - B); };
+    c.strokeStyle = css.getPropertyValue('--borde'); c.textAlign = 'right';
+    for (var i = 0; i <= 3; i++) { var v = mn + (mx - mn) * i / 3; c.beginPath(); c.moveTo(L, Y(v)); c.lineTo(w - R, Y(v)); c.stroke(); c.fillStyle = css.getPropertyValue('--soft'); c.fillText(v.toFixed(1), L - 4, Y(v) + 4); }
+    c.fillText('Pmax (W/kg)', 78, 12);
+    c.strokeStyle = '#DB2777'; c.lineWidth = 2.2; c.beginPath(); vals.forEach(function (v, i) { if (i) c.lineTo(X(i), Y(v)); else c.moveTo(X(i), Y(v)); }); c.stroke();
+    c.textAlign = 'center';
+    vals.forEach(function (v, i) { c.fillStyle = '#DB2777'; c.beginPath(); c.arc(X(i), Y(v), 4, 0, 7); c.fill(); c.fillStyle = css.getPropertyValue('--fg'); c.fillText(v.toFixed(1), X(i), Y(v) - 9); });
+}
+$('btn-csv').onclick = function () {
+    var a = A(); if (!a || !a.sesiones.length) { $('msg-hist').innerHTML = '<div class="msg av">No hay sesiones para descargar.</div>'; return; }
+    var filas = [['fecha', 'deportista', 'peso_kg', 'hPO_m', 'cargas_pct', 'alturas_cm', 'Pmax_W_kg', 'F0_N_kg', 'V0_m_s', 'Sfv', 'pct_optimo', 'FVimb_pct', 'r2', 'diagnostico']];
+    a.sesiones.forEach(function (s) {
+        filas.push([s.fecha, DB.actual, s.peso, s.hpo.toFixed(3), s.cargas.join('|'), s.alturas.map(function (x) { return (x * 100).toFixed(1); }).join('|'),
+            s.Pmax.toFixed(2), s.F0.toFixed(2), s.V0.toFixed(3), s.Sfv.toFixed(3), s.ratio90.toFixed(1), s.fvimb.toFixed(1), s.r2.toFixed(3), s.diag]);
+    });
+    var csv = '﻿' + filas.map(function (f) { return f.map(function (x) { return '"' + String(x).replace(/"/g, '""') + '"'; }).join(';'); }).join('\r\n');
+    var url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    var l = document.createElement('a'); l.href = url; l.download = 'perfil_fv_' + DB.actual.replace(/[^\w-]+/g, '_') + '.csv';
+    document.body.appendChild(l); l.click(); l.remove(); setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
+    $('msg-hist').innerHTML = '<div class="msg ok">CSV generado (separador «;», se abre directo en Excel).</div>';
+};
+
+llenarSelect(); cargarFormulario(); pintarMedir();
+window.addEventListener('resize', function () { var s = document.querySelector('section.on'); if (s && s.id === 's-hist') pintarHistorial(); if (s && s.id === 's-result' && ultimo) dibujarFV(ultimo); });
+</script>
+</body>
+</html>
