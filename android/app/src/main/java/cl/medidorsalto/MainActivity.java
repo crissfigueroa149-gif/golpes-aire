@@ -13,7 +13,9 @@ import android.os.Environment;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.provider.MediaStore;
+import android.speech.tts.TextToSpeech;
 import android.view.WindowManager;
+import java.util.Locale;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
@@ -31,6 +33,8 @@ import java.nio.charset.StandardCharsets;
 public class MainActivity extends Activity implements SensorEventListener {
     private static final String WEB = "https://crissfigueroa149-gif.github.io/golpes-aire/salto/";
     private static final String ASSET = "https://appassets.androidplatform.net/assets/index.html";
+    private TextToSpeech tts;
+    private boolean ttsListo = false;
     private WebView web;
     private SensorManager sm;
     private Sensor acc;
@@ -69,6 +73,14 @@ public class MainActivity extends Activity implements SensorEventListener {
             }
         });
         web.addJavascriptInterface(new Puente(), "AndroidSensor");
+        tts = new TextToSpeech(this, new TextToSpeech.OnInitListener() {
+            public void onInit(int st) {
+                if (st != TextToSpeech.SUCCESS) return;
+                int r = tts.setLanguage(new Locale("es", "CL"));
+                if (r < 0) r = tts.setLanguage(new Locale("es"));
+                ttsListo = r >= 0;
+            }
+        });
         sm = (SensorManager) getSystemService(SENSOR_SERVICE);
         acc = sm.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
         web.loadUrl(WEB);
@@ -77,6 +89,11 @@ public class MainActivity extends Activity implements SensorEventListener {
     class Puente {
         @JavascriptInterface
         public boolean disponible() { return acc != null; }
+
+        @JavascriptInterface
+        public void hablar(final String texto) {
+            if (ttsListo) tts.speak(texto, TextToSpeech.QUEUE_FLUSH, null, "g");
+        }
 
         @JavascriptInterface
         public void iniciar() {
@@ -142,6 +159,7 @@ public class MainActivity extends Activity implements SensorEventListener {
     }
 
     @Override public void onAccuracyChanged(Sensor s, int a) {}
+    @Override protected void onDestroy() { if (tts != null) tts.shutdown(); super.onDestroy(); }
     @Override protected void onPause() { super.onPause(); parar(); }
     @Override public void onBackPressed() { if (web.canGoBack()) web.goBack(); else super.onBackPressed(); }
 }
