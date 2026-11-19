@@ -248,7 +248,8 @@ function analizarSalto(S, t0, t1) {
         for (i = q0; i <= q1; i++) { ux += S[i][1]; uy += S[i][2]; uz += S[i][3]; }
         ux /= cnt; uy /= cnt; uz /= cnt;
         var nu = Math.sqrt(ux * ux + uy * uy + uz * uz); ux /= nu; uy /= nu; uz /= nu;
-        av = S.map(function (p) { return p[1] * ux + p[2] * uy + p[3] * uz; });
+        // módulo de la aceleración: no depende de cuánto se incline o gire el celular (el tronco se inclina al bajar)
+        av = S.map(function (p) { return Math.sqrt(p[1] * p[1] + p[2] * p[2] + p[3] * p[3]); });
         var quieta = av.slice(q0, q1 + 1); g0 = mediana(quieta); sdq = desv(quieta, media(quieta));
         F = av.map(function (a) { return a / g0; });           // fuerza en múltiplos del peso (BW)
         dev = av.map(function (a) { return a - g0; });         // aceleración neta del centro de masa
@@ -311,7 +312,10 @@ function analizarSalto(S, t0, t1) {
     var pw = 0; for (i = is; i <= iT; i++) pw = Math.max(pw, av[i] * v[i]);
     var prof = 0; for (i = is + 1; i <= iV0; i++) prof += 0.5 * (v[i] + v[i - 1]) * (T[i] - T[i - 1]);
     var pAt = 0; for (i = 0; i < n; i++) if (T[i] >= t1 && T[i] <= t1 + 0.4) pAt = Math.max(pAt, F[i]);
+    var dif = hVuelo > 0 ? Math.abs(hImp - hVuelo) / hVuelo : 1;
+    var calidad = { ok: dif <= 0.25 && -prof <= 0.45 && -prof >= -0.05, dif: dif };
     return {
+        calidad: calidad,
         T: T, F: F, Fs: Fs, v: v, g0: g0, ruido: sdq,
         t: { q0: T[q0], inicio: T[is], minF: T[iMin], bw: T[iBW], v0: T[iV0], p1p2: iSplit === null ? null : T[iSplit], pico: T[iPk], despegue: t0, aterrizaje: t1, rfd: T[iRfd], fin: Math.min(T[n - 1], t1 + 0.5) },
         excentrica: conExcentrica,
@@ -662,8 +666,9 @@ function mostrarCurva(divId, rec) {
     div.innerHTML = '<div class="sub" style="margin-bottom:4px">' + esc(rec.tipo || '') + ' · ' + fmt(rec.altura * 100, 1) + ' cm · ' + hora(rec.fecha) + '</div><canvas id="cv-' + divId + '" height="270"></canvas>' +
         '<div class="leyenda"><span><i style="background:' + COLOR.desc + '"></i>Descarga</span><span><i style="background:' + COLOR.fren + '"></i>Frenado</span><span><i style="background:' + COLOR.dec + '"></i>Deceleración</span>' +
         '<span><i style="background:' + COLOR.p1 + '"></i>Concéntrica P1</span>' + (an.t.p1p2 !== null ? '<span><i style="background:' + COLOR.p2 + '"></i>P2</span>' : '') + '<span><i style="background:' + COLOR.aterr + '"></i>Aterrizaje</span></div>' +
-        '<div class="met">' +
-        '<div>Fuerza pico<b>' + fmt(mm.picoBW, 2) + ' BW' + N + '</b></div><div>RFD máx.<b>' + fmt(mm.rfdBWs, 1) + ' BW/s</b></div>' +
+        (an.calidad.ok ? '<div class="msg ok" style="margin:0 0 8px">Señal coherente: la altura por impulso (' + fmt(mm.hImp * 100, 1) + ' cm) se parece a la del tiempo de vuelo (' + fmt(mm.hVuelo * 100, 1) + ' cm).</div>' :
+            '<div class="msg av" style="margin:0 0 8px">⚠ Señal poco confiable: la altura por impulso (' + fmt(mm.hImp * 100, 1) + ' cm) no coincide con la del tiempo de vuelo (' + fmt(mm.hVuelo * 100, 1) + ' cm) o la profundidad (' + fmt(mm.profundidadM * 100, 0) + ' cm) es irreal. Probablemente el celular se movió sobre el cuerpo. La <b>altura del salto</b> sigue siendo válida (sale del tiempo de vuelo); las fases y la fuerza son solo orientativas.</div>') +
+        '<div class="met"><div>Fuerza pico<b>' + fmt(mm.picoBW, 2) + ' BW' + N + '</b></div><div>RFD máx.<b>' + fmt(mm.rfdBWs, 1) + ' BW/s</b></div>' +
         '<div>Descarga<b>' + fmt(mm.descargaS * 1000, 0) + ' ms</b></div><div>Frenado<b>' + fmt(mm.frenadoS * 1000, 0) + ' ms</b></div>' +
         '<div>Concéntrica<b>' + fmt(mm.concentricaS * 1000, 0) + ' ms</b></div><div>Profundidad contramov.<b>' + fmt(mm.profundidadM * 100, 0) + ' cm</b></div>' +
         '<div>Altura (tiempo de vuelo)<b>' + fmt(mm.hVuelo * 100, 1) + ' cm</b></div><div>Altura (impulso)<b>' + fmt(mm.hImp * 100, 1) + ' cm</b></div>' +
