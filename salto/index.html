@@ -428,8 +428,19 @@ function alMovimiento(ev) {
 }
 function mostrarAyuda(html) { $('ayuda-sensor').innerHTML = html ? '<div class="msg av">' + html + '</div>' : ''; }
 function estadoSensor(txt, cls) { var e = $('est-sensor'); e.textContent = txt; e.className = 'estado ' + (cls || ''); }
+window.__movNativo = function (arr) {
+    for (var i = 0; i < arr.length; i++) alMovimiento({ timeStamp: arr[i][0], accelerationIncludingGravity: { x: arr[i][1], y: arr[i][2], z: arr[i][3] } });
+};
+var NATIVO = !!(window.AndroidSensor && window.AndroidSensor.disponible && window.AndroidSensor.disponible());
 $('btn-sensor').onclick = function () {
     mostrarAyuda('');
+    if (NATIVO) {
+        window.AndroidSensor.detener(); window.AndroidSensor.iniciar();
+        sensor.activo = true; sensor.n = 0; detector.reiniciar(); estadoSensor('esperando datos…');
+        $('btn-sensor').textContent = 'Reiniciar sensor';
+        setTimeout(function () { if (sensor.n === 0) { estadoSensor('sin datos', 'no'); mostrarAyuda('La app no recibe datos del acelerómetro.'); } }, 2500);
+        return;
+    }
     if (!window.isSecureContext) { estadoSensor('bloqueado', 'no'); mostrarAyuda('La página no está en https, por eso el navegador bloquea el sensor. Ábrela desde su dirección https.'); return; }
     if (typeof DeviceMotionEvent === 'undefined') { estadoSensor('no disponible', 'no'); mostrarAyuda('Este navegador no tiene sensor de movimiento.'); return; }
     var iniciar = function () {
@@ -457,7 +468,7 @@ $('btn-sensor').onclick = function () {
 setInterval(function () {
     if (!sensor.activo) return;
     sensor.hz = sensor.cuenta; sensor.cuenta = 0;
-    if (sensor.n > 0) { estadoSensor('activo', 'ok'); mostrarAyuda(''); $('hz-txt').textContent = sensor.hz + ' lecturas/s' + (sensor.hz < 40 ? ' (baja: menos precisión)' : ''); }
+    if (sensor.n > 0) { estadoSensor('activo', 'ok'); mostrarAyuda(''); $('hz-txt').textContent = sensor.hz + ' lecturas/s' + (NATIVO ? ' · app nativa' : '') + (sensor.hz < 40 ? ' (baja: menos precisión)' : ''); }
 }, 1000);
 $('bajo').addEventListener('input', function () { $('bajo-v').textContent = fmt(+this.value, 1); detector.cfg.bajo = +this.value; });
 
@@ -738,6 +749,11 @@ function dibujarHist(ses) {
 /* ---------- descargas ---------- */
 function descargar(nombre, filas, msgId) {
     var csv = '\ufeff' + filas.map(function (f) { return f.map(function (x) { return '"' + String(x === null || x === undefined ? '' : x).replace(/"/g, '""') + '"'; }).join(';'); }).join('\r\n');
+    if (window.AndroidSensor && window.AndroidSensor.guardar) {
+        var r = window.AndroidSensor.guardar(nombre, csv);
+        $(msgId).innerHTML = r === 'ok' ? '<div class="msg ok">Guardado en la carpeta Descargas: ' + esc(nombre) + '</div>' : '<div class="msg av">No se pudo guardar: ' + esc(r) + '</div>';
+        return;
+    }
     var url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
     var l = document.createElement('a'); l.href = url; l.download = nombre;
     document.body.appendChild(l); l.click(); l.remove(); setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
