@@ -29,6 +29,8 @@ import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 
 public class MainActivity extends Activity implements SensorEventListener {
+    private static final String WEB = "https://crissfigueroa149-gif.github.io/golpes-aire/salto/";
+    private static final String ASSET = "https://appassets.androidplatform.net/assets/index.html";
     private WebView web;
     private SensorManager sm;
     private Sensor acc;
@@ -55,11 +57,21 @@ public class MainActivity extends Activity implements SensorEventListener {
             public WebResourceResponse shouldInterceptRequest(WebView v, WebResourceRequest r) {
                 return loader.shouldInterceptRequest(r.getUrl());
             }
+            @Override
+            public boolean shouldOverrideUrlLoading(WebView v, WebResourceRequest r) {
+                String h = r.getUrl().getHost();
+                return !("crissfigueroa149-gif.github.io".equals(h) || "appassets.androidplatform.net".equals(h));
+            }
+            @Override
+            public void onReceivedError(WebView v, WebResourceRequest r, android.webkit.WebResourceError e) {
+                // sin internet: usar la copia que viene dentro de la app
+                if (r.isForMainFrame() && !ASSET.equals(r.getUrl().toString())) v.loadUrl(ASSET);
+            }
         });
         web.addJavascriptInterface(new Puente(), "AndroidSensor");
         sm = (SensorManager) getSystemService(SENSOR_SERVICE);
         acc = sm.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
-        web.loadUrl("https://appassets.androidplatform.net/assets/index.html");
+        web.loadUrl(WEB);
     }
 
     class Puente {

@@ -114,6 +114,7 @@ ul.av{margin:6px 0 0;padding-left:18px;font-size:13px;color:var(--aviso-fg)}
     <h2>Sensor de movimiento</h2>
     <div class="fila">
       <button class="b f" id="btn-sensor">Activar sensor</button>
+      <button class="b g" id="btn-parar">■ Detener lectura</button>
       <span class="estado" id="est-sensor">sin activar</span>
       <span class="sub" id="hz-txt"></span>
     </div>
@@ -123,6 +124,20 @@ ul.av{margin:6px 0 0;padding-left:18px;font-size:13px;color:var(--aviso-fg)}
     <label for="bajo">Umbral de caída libre: <b id="bajo-v">4,5</b> m/s²</label>
     <input type="range" id="bajo" min="2" max="8" step="0.5" value="4.5">
     <div class="msg av" style="margin-top:8px">Pon el celular <b>fijo a la cintura</b> (cinturón o banda, pantalla hacia afuera) o en el bolsillo delantero con el pantalón ajustado. <b>Quédate quieto 1 segundo</b> antes de cada salto: el celular usa ese reposo para medir tu peso y la vertical.</div>
+  </div>
+
+  <div class="card">
+    <h2>Test</h2>
+    <div class="fila2">
+      <div><label for="cuenta">Cuenta regresiva (s)</label><input id="cuenta" inputmode="numeric" value="5"></div>
+      <div style="text-align:center"><div class="gran" id="test-reloj" style="font-size:2.2rem">—</div><div class="sub" id="test-est">Test detenido</div></div>
+    </div>
+    <div class="fila" style="margin-top:10px">
+      <button class="b f" id="btn-test-ini">▶ Iniciar test</button>
+      <button class="b t" id="btn-test-fin" disabled>■ Terminar test</button>
+    </div>
+    <div class="sub" style="margin-top:6px">Al iniciar suena una cuenta regresiva: ponte el celular, quédate quieto y salta cuando termine. Los saltos se registran solo mientras el test está en curso.</div>
+    <div id="test-res"></div>
   </div>
 
   <div class="card">
@@ -183,7 +198,7 @@ function aNumero(t) { var n = parseFloat(String(t).trim().replace(',', '.')); re
 
 // Detector de salto: caída libre (|a| ~ 0) precedida por un impulso y seguida por un choque de aterrizaje.
 function crearDetectorSalto(cfg) {
-    cfg = Object.assign({ bajo: 4.5, alto: 15, minVuelo: 0.15, maxVuelo: 1.2, ventanaImpulso: 0.8, ventanaAterrizaje: 0.3 }, cfg || {});
+    cfg = Object.assign({ bajo: 4.5, alto: 15, minVuelo: 0.20, maxVuelo: 1.2, ventanaImpulso: 0.8, ventanaAterrizaje: 0.3 }, cfg || {});
     var prevT = null, prevM = null, ultimoAlto = -1e9;
     var enVuelo = false, t0 = 0, pend = null;
     function cruce(ta, ma, tb, mb, nivel) { return ta + (nivel - ma) * (tb - ta) / (mb - ma); }
@@ -265,6 +280,11 @@ function analizarSalto(S, t0, t1) {
     // 4) velocidad del centro de masa (integral de la aceleración neta desde el inicio)
     var v = new Array(n).fill(0);
     for (i = q0 + 1; i <= iT; i++) v[i] = v[i - 1] + 0.5 * (dev[i] + dev[i - 1]) * (S[i][0] - S[i - 1][0]);   // desde la fase quieta: no se pierde el comienzo suave de la descarga
+
+    // 4b) ancla: la velocidad de despegue tiene que coincidir con la del tiempo de vuelo (medida directa).
+    //     La diferencia se reparte linealmente en el tiempo (corrige un error constante de la línea base).
+    var vInt = v[iT], vAncla = 9.81 * (t1 - t0) / 2, dTi = S[iT][0] - S[q0][0];
+    if (dTi > 0) for (i = q0 + 1; i <= iT; i++) v[i] -= (vInt - vAncla) * (S[i][0] - S[q0][0]) / dTi;
 
     // 5) suavizado ligero (triangular 5 puntos) solo para detectar fases
     var Fs = F.map(function (f, k) {
@@ -432,7 +452,7 @@ window.__movNativo = function (arr) {
     for (var i = 0; i < arr.length; i++) alMovimiento({ timeStamp: arr[i][0], accelerationIncludingGravity: { x: arr[i][1], y: arr[i][2], z: arr[i][3] } });
 };
 var NATIVO = !!(window.AndroidSensor && window.AndroidSensor.disponible && window.AndroidSensor.disponible());
-$('btn-sensor').onclick = function () {
+function activarSensor() {
     mostrarAyuda('');
     if (NATIVO) {
         window.AndroidSensor.detener(); window.AndroidSensor.iniciar();
@@ -464,7 +484,16 @@ $('btn-sensor').onclick = function () {
             else { estadoSensor('denegado', 'no'); mostrarAyuda('Permiso denegado. En iPhone: Ajustes → Safari → Movimiento y orientación, y recarga la página. En Chrome: candado → Configuración del sitio → Sensores de movimiento → Permitir.'); }
         }).catch(function () { clearTimeout(plazo); ir(); });
     } else iniciar();
-};
+}
+$('btn-sensor').onclick = activarSensor;
+function detenerLectura() {
+    if (NATIVO) { try { window.AndroidSensor.detener(); } catch (e) {} }
+    else window.removeEventListener('devicemotion', alMovimiento);
+    sensor.activo = false; sensor.hz = 0; sensor.cuenta = 0;
+    estadoSensor('detenido'); $('hz-txt').textContent = ''; $('btn-sensor').textContent = 'Activar sensor';
+    if (test.estado !== 'idle') terminarTest(true);
+}
+$('btn-parar').onclick = detenerLectura;
 setInterval(function () {
     if (!sensor.activo) return;
     sensor.hz = sensor.cuenta; sensor.cuenta = 0;
@@ -504,7 +533,49 @@ function agregarSalto(datos) {
     guardarDB(); pintarMedir();
     return rec;
 }
+var test = { estado: 'idle', timer: null, reloj: null, t0: 0, n0: 0 };
+function testUI() {
+    var en = test.estado;
+    $('btn-test-ini').disabled = en !== 'idle'; $('btn-test-fin').disabled = en === 'idle';
+}
+function terminarTest(cancelado) {
+    clearInterval(test.timer); clearInterval(test.reloj);
+    var a = A(), antes = test.estado, dur = (Date.now() - test.t0) / 1000;
+    test.estado = 'idle'; testUI();
+    $('test-reloj').textContent = '—'; $('test-est').textContent = 'Test detenido';
+    if (antes === 'activo') {
+        beep(520, 300);
+        var r = a ? resumen(a.saltos.slice(test.n0)) : null;
+        $('test-res').innerHTML = '<div class="msg ok">Test terminado' + (cancelado ? ' (se detuvo la lectura)' : '') + ': ' + fmt(dur, 0) + ' s · ' +
+            (r ? r.n + ' salto(s) · mejor ' + fmt(r.mejor * 100, 1) + ' cm · promedio ' + fmt(r.prom * 100, 1) + ' cm' : 'sin saltos válidos') + '. Los saltos quedan en el registro; usa «Guardar sesión» para pasarlos al historial.</div>';
+    } else $('test-res').innerHTML = '<div class="msg av">Cuenta regresiva cancelada.</div>';
+}
+function iniciarTest() {
+    if (test.estado !== 'idle') return;
+    if (!A()) { $('test-res').innerHTML = '<div class="msg av">Primero crea un deportista (pestaña 1).</div>'; return; }
+    var seg = Math.round(aNumero($('cuenta').value)); if (!isFinite(seg) || seg < 1) seg = 5; if (seg > 60) seg = 60;
+    $('test-res').innerHTML = '';
+    if (!sensor.activo) activarSensor();
+    sensorBeep();
+    test.estado = 'cuenta'; testUI();
+    var falta = seg;
+    $('test-reloj').textContent = falta; $('test-est').textContent = 'Quédate quieto…'; beep(660, 120);
+    test.timer = setInterval(function () {
+        falta--;
+        if (falta > 0) { $('test-reloj').textContent = falta; beep(660, 120); return; }
+        clearInterval(test.timer);
+        detector.reiniciar(); test.estado = 'activo'; test.t0 = Date.now(); test.n0 = (A() ? A().saltos.length : 0); testUI();
+        beep(1100, 450); try { navigator.vibrate && navigator.vibrate(200); } catch (e) {}
+        $('test-est').textContent = '¡SALTA! Test en curso';
+        test.reloj = setInterval(function () { $('test-reloj').textContent = fmt((Date.now() - test.t0) / 1000, 0) + ' s'; }, 250);
+        $('test-reloj').textContent = '0 s';
+    }, 1000);
+}
+function sensorBeep() { try { sonidoCtx = sonidoCtx || new (window.AudioContext || window.webkitAudioContext)(); if (sonidoCtx.resume) sonidoCtx.resume(); } catch (e) {} }
+$('btn-test-ini').onclick = iniciarTest;
+$('btn-test-fin').onclick = function () { terminarTest(false); };
 function registrarSalto(r) {
+    if (test.estado !== 'activo') { $('ult-d').textContent = 'Salto ignorado: inicia el test para registrarlo.'; return; }
     $('ult-h').textContent = fmt(r.altura * 100, 1) + ' cm';
     $('ult-d').textContent = 'Tiempo de vuelo ' + fmt(r.vuelo, 3) + ' s · v despegue ' + fmt(G * r.vuelo / 2, 2) + ' m/s';
     beep(880, 90); try { navigator.vibrate && navigator.vibrate(60); } catch (e) {}
@@ -681,7 +752,7 @@ function mostrarCurva(divId, rec) {
             '<div class="msg av" style="margin:0 0 8px">⚠ Señal poco confiable: la altura por impulso (' + fmt(mm.hImp * 100, 1) + ' cm) no coincide con la del tiempo de vuelo (' + fmt(mm.hVuelo * 100, 1) + ' cm) o la profundidad (' + fmt(mm.profundidadM * 100, 0) + ' cm) es irreal. Probablemente el celular se movió sobre el cuerpo. La <b>altura del salto</b> sigue siendo válida (sale del tiempo de vuelo); las fases y la fuerza son solo orientativas.</div>') +
         '<div class="met"><div>Fuerza pico<b>' + fmt(mm.picoBW, 2) + ' BW' + N + '</b></div><div>RFD máx.<b>' + fmt(mm.rfdBWs, 1) + ' BW/s</b></div>' +
         '<div>Descarga<b>' + fmt(mm.descargaS * 1000, 0) + ' ms</b></div><div>Frenado<b>' + fmt(mm.frenadoS * 1000, 0) + ' ms</b></div>' +
-        '<div>Concéntrica<b>' + fmt(mm.concentricaS * 1000, 0) + ' ms</b></div><div>Profundidad contramov.<b>' + fmt(mm.profundidadM * 100, 0) + ' cm</b></div>' +
+        '<div>Concéntrica<b>' + fmt(mm.concentricaS * 1000, 0) + ' ms</b></div><div>Profundidad contramov.<b>' + (mm.profundidadM > 0.6 ? '— (no confiable)' : fmt(mm.profundidadM * 100, 0) + ' cm') + '</b></div>' +
         '<div>Altura (tiempo de vuelo)<b>' + fmt(mm.hVuelo * 100, 1) + ' cm</b></div><div>Altura (impulso)<b>' + fmt(mm.hImp * 100, 1) + ' cm</b></div>' +
         '<div>Potencia pico<b>' + fmt(mm.potenciaPico, 1) + ' W/kg</b></div><div>Pico de aterrizaje<b>' + fmt(mm.picoAterrizajeBW, 1) + ' BW</b></div></div>' +
         '<div class="sub" style="margin-top:6px">Aproximación con el acelerómetro del celular en la cintura (≈60 lecturas/s); una plataforma de fuerza mide a 1000/s. La altura por impulso debería parecerse a la del tiempo de vuelo: si difieren mucho, la señal no es confiable.</div>';
